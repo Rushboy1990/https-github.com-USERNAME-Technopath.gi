@@ -22,7 +22,7 @@ namespace Technopath.Debugging
             EnsureStyles();
 
             const float width = 360f;
-            const float height = 218f;
+            const float height = 246f;
             var rect = new Rect(16f, 16f, width, height);
 
             GUI.Box(rect, GUIContent.none, _panelStyle);
@@ -33,6 +33,7 @@ namespace Technopath.Debugging
             GUILayout.Label($"Selection: {(battlefieldPresenter != null ? battlefieldPresenter.SelectionDescription : "None")}", _labelStyle);
             GUILayout.Label($"Action Points: {(battlefieldPresenter != null ? battlefieldPresenter.ActionPoints : 0)}", _labelStyle);
             GUILayout.Label($"Log: {(battlefieldPresenter != null ? battlefieldPresenter.BattleLog : "—")}", _labelStyle);
+            GUILayout.Label($"Events: {(battlefieldPresenter != null ? battlefieldPresenter.DetailedCombatLog : "—")}", _labelStyle);
             if (battlefieldPresenter != null)
             {
                 if (battlefieldPresenter.PhaseDescription == "PlayerTurn" && GUILayout.Button("Finish player phase"))

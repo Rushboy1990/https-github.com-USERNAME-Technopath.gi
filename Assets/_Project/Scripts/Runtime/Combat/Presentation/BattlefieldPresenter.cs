@@ -5,6 +5,7 @@ using System.Text;
 using Technopath.Combat.Board;
 using Technopath.Combat.Rules;
 using Technopath.Combat.Round;
+using Technopath.Combat.Events;
 using UnityEngine;
 
 namespace Technopath.Combat.Presentation
@@ -28,6 +29,7 @@ namespace Technopath.Combat.Presentation
 
         public string SelectionDescription { get; private set; } = "None";
         public string BattleLog { get; private set; } = "Select a player unit, then an adjacent cell.";
+        public string DetailedCombatLog { get; private set; } = "PhaseStarted";
         public int ActionPoints => _turn?.ActionPoints ?? 0;
         public string PhaseDescription => _combat?.Phase.ToString() ?? "None";
         public int RoundNumber => _combat?.RoundNumber ?? 0;
@@ -112,6 +114,7 @@ namespace Technopath.Combat.Presentation
                 }
             }
             BattleLog = log.ToString();
+            AppendDetailedEvents();
             SelectionDescription = "None";
             _selectedSource = null;
             ClearHighlights();
@@ -168,6 +171,7 @@ namespace Technopath.Combat.Presentation
             }
             else
                 BattleLog = _combat.Phase == CombatPhase.Victory ? "VICTORY: all required mutants destroyed." : "DEFEAT: Technopath destroyed.";
+            AppendDetailedEvents();
             _isAnimating = false;
         }
 
@@ -223,6 +227,24 @@ namespace Technopath.Combat.Presentation
         {
             var damage = attack.DamageResult;
             return $"{attack.AttackerId} → {attack.TargetId}: ARM -{damage.AbsorbedByArmor}, HP -{damage.HealthDamage}. ";
+        }
+
+        private void AppendDetailedEvents()
+        {
+            var events = _turn.Events.Drain();
+            if (events.Count == 0)
+                return;
+
+            var builder = new StringBuilder();
+            foreach (var combatEvent in events)
+            {
+                if (builder.Length > 0) builder.Append(" → ");
+                builder.Append(combatEvent.Kind);
+                if (!string.IsNullOrEmpty(combatEvent.SourceId)) builder.Append($"[{combatEvent.SourceId}]");
+                if (!string.IsNullOrEmpty(combatEvent.TargetId)) builder.Append($"({combatEvent.TargetId})");
+                if (combatEvent.Value != 0) builder.Append($":{combatEvent.Value}");
+            }
+            DetailedCombatLog = builder.ToString();
         }
 
         private GridCellView GetCell(BoardSide side, GridPosition position) =>
