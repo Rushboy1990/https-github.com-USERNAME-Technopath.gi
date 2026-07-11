@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Technopath.Combat.Board;
+using Technopath.Combat.Events;
 
 namespace Technopath.Combat.Rules
 {
@@ -18,10 +19,12 @@ namespace Technopath.Combat.Rules
             ActionPoints = actionPoints;
             RegisterUnits(battlefield.Player, 10, 2);
             RegisterUnits(battlefield.Enemy, 6, 1);
+            Events.Enqueue(new CombatEvent(CombatEventKind.PhaseStarted));
         }
 
         public int ActionPoints { get; private set; }
         public bool IsFinished => ActionPoints == 0;
+        public CombatEventQueue Events { get; } = new();
 
         public CombatUnitState GetUnit(string id) => _units[id];
         public bool IsAlive(string id) => _units.TryGetValue(id, out var unit) && unit.IsAlive;
@@ -35,8 +38,13 @@ namespace Technopath.Combat.Rules
         {
             var unit = _units[unitId];
             var result = unit.TakeDamage(damage);
+            Events.Enqueue(new CombatEvent(CombatEventKind.Damage, targetId: unitId, value: damage));
             if (result.Killed)
+            {
                 _battlefield.GetGrid(unit.Side).RemoveUnit(unitId);
+                Events.Enqueue(new CombatEvent(CombatEventKind.Kill, targetId: unitId));
+                Events.Enqueue(new CombatEvent(CombatEventKind.Destroyed, targetId: unitId));
+            }
             return result;
         }
 
@@ -62,9 +70,15 @@ namespace Technopath.Combat.Rules
             var displacedId = grid[to].Occupancy == CellOccupancyKind.Unit ? grid[to].OccupantId : null;
 
             if (displacedId == null)
+            {
                 grid.MoveUnit(from, to);
+                Events.Enqueue(new CombatEvent(CombatEventKind.Movement, initiatorId));
+            }
             else
+            {
                 grid.SwapUnits(from, to);
+                Events.Enqueue(new CombatEvent(CombatEventKind.Swap, initiatorId, displacedId));
+            }
 
             ActionPoints--;
             _independentlyActivated.Add(initiatorId);
@@ -79,7 +93,11 @@ namespace Technopath.Combat.Rules
             return new MoveResult(from, to, displacedId != null, attacks);
         }
 
-        public void FinishTurn() => ActionPoints = 0;
+        public void FinishTurn()
+        {
+            ActionPoints = 0;
+            Events.Enqueue(new CombatEvent(CombatEventKind.PhaseEnded));
+        }
 
         public void BeginNewTurn(int actionPoints = StartingActionPoints)
         {
@@ -95,11 +113,13 @@ namespace Technopath.Combat.Rules
                 if (unit.Side == BoardSide.Player && unit.IsAlive)
                     unit.RestoreArmor();
             }
+            Events.Enqueue(new CombatEvent(CombatEventKind.PhaseStarted));
         }
 
         private AutoAttackResult ResolveAutoAttack(string attackerId, int row)
         {
             var attacker = _units[attackerId];
+            Events.Enqueue(new CombatEvent(CombatEventKind.Attack, attackerId));
             for (var column = 0; column < GridPosition.Size; column++)
             {
                 var cell = _battlefield.Enemy[new GridPosition(row, column)];
@@ -107,8 +127,8 @@ namespace Technopath.Combat.Rules
                     continue;
 
                 var target = _units[cell.OccupantId];
-                ApplyDamage(target.Id, attacker.AttackDamage);
-                return new AutoAttackResult(attackerId, target.Id, attacker.AttackDamage, row);
+                var damageResult = ApplyDamageDetailed(target.Id, attacker.AttackDamage);
+                return new AutoAttackResult(attackerId, target.Id, attacker.AttackDamage, row, damageResult);
             }
 
             return new AutoAttackResult(attackerId, null, 0, row);

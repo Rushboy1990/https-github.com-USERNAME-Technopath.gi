@@ -58,5 +58,22 @@ namespace Technopath.Tests.EditMode
             Assert.That(queue.Dequeue().Kind, Is.EqualTo(CombatEventKind.Attack));
             Assert.That(queue.Dequeue().Kind, Is.EqualTo(CombatEventKind.Damage));
         }
+
+        [Test]
+        public void PlayerMove_ProducesMovementAttackAndDamageEventsInOrder()
+        {
+            var field = new BattlefieldModel();
+            field.Player.TryOccupy(new GridPosition(0, 0), CellOccupancyKind.Unit, "robot");
+            field.Enemy.TryOccupy(new GridPosition(0, 0), CellOccupancyKind.Unit, "mutant");
+            var turn = new PlayerTurnModel(field);
+            turn.Events.Clear();
+
+            turn.Move(new GridPosition(0, 0), new GridPosition(0, 1));
+            var events = turn.Events.Drain();
+
+            Assert.That(events[0].Kind, Is.EqualTo(CombatEventKind.Movement));
+            Assert.That(events[1].Kind, Is.EqualTo(CombatEventKind.Attack));
+            Assert.That(events[2].Kind, Is.EqualTo(CombatEventKind.Damage));
+        }
     }
 }

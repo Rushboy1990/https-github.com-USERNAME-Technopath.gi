@@ -98,7 +98,7 @@ namespace Technopath.Combat.Presentation
             {
                 ShowAttackFeedback(attack);
                 if (attack.HasTarget)
-                    log.Append($"{attack.AttackerId} dealt {attack.Damage} to {attack.TargetId}. ");
+                    log.Append(DescribeDamage(attack));
                 else
                     log.Append($"{attack.AttackerId} fired into empty row. ");
             }
@@ -146,7 +146,7 @@ namespace Technopath.Combat.Presentation
             {
                 ShowAttackFeedback(action.Attack);
                 BattleLog = action.Attack.HasTarget
-                    ? $"{action.MutantId} dealt {action.Attack.Damage} to {action.Attack.TargetId}."
+                    ? DescribeDamage(action.Attack)
                     : $"{action.MutantId} fired into empty row.";
                 yield return new WaitForSeconds(0.38f);
 
@@ -201,7 +201,7 @@ namespace Technopath.Combat.Presentation
             var destination = attack.HasTarget && _unitViews.TryGetValue(attack.TargetId, out var target)
                 ? target.transform.position
                 : GetMissDestination(attack);
-            Instantiate(attackTracePrefab, unitsRoot).Play(attacker.transform.position, destination, attack.Damage);
+            Instantiate(attackTracePrefab, unitsRoot).Play(attacker.transform.position, destination, attack);
         }
 
         private Vector3 GetMissDestination(AutoAttackResult attack)
@@ -216,7 +216,13 @@ namespace Technopath.Combat.Presentation
         private string DescribeUnit(BoardSide side, GridPosition position, string unitId)
         {
             var unit = _turn.GetUnit(unitId);
-            return $"{side} {position}: {unitId}, HP {unit.Health}, ATK {unit.AttackDamage}";
+            return $"{side} {position}: {unitId}, HP {unit.Health}/{unit.MaxHealth}, ARM {unit.Armor}/{unit.MaxArmor}, ATK {unit.AttackDamage}";
+        }
+
+        private static string DescribeDamage(AutoAttackResult attack)
+        {
+            var damage = attack.DamageResult;
+            return $"{attack.AttackerId} → {attack.TargetId}: ARM -{damage.AbsorbedByArmor}, HP -{damage.HealthDamage}. ";
         }
 
         private GridCellView GetCell(BoardSide side, GridPosition position) =>

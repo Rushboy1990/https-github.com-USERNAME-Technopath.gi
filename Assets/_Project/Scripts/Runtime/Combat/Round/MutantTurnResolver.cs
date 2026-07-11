@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Technopath.Combat.Board;
 using Technopath.Combat.Rules;
+using Technopath.Combat.Events;
 
 namespace Technopath.Combat.Round
 {
@@ -25,6 +26,7 @@ namespace Technopath.Combat.Round
                 {
                     destination = intent.PlannedDestination.Value;
                     battlefield.Enemy.MoveUnit(origin, destination.Value);
+                    combatState.Events.Enqueue(new CombatEvent(CombatEventKind.Movement, intent.MutantId));
                 }
 
                 results.Add(new MutantActionResult(intent.MutantId, attack, origin, destination));
@@ -45,8 +47,9 @@ namespace Technopath.Combat.Round
                     continue;
 
                 var targetId = cell.OccupantId;
-                combatState.ApplyDamage(targetId, intent.AttackDamage);
-                return new AutoAttackResult(intent.MutantId, targetId, intent.AttackDamage, row);
+                combatState.Events.Enqueue(new CombatEvent(CombatEventKind.Attack, intent.MutantId, targetId, intent.AttackDamage));
+                var damageResult = combatState.ApplyDamageDetailed(targetId, intent.AttackDamage);
+                return new AutoAttackResult(intent.MutantId, targetId, intent.AttackDamage, row, damageResult);
             }
             return new AutoAttackResult(intent.MutantId, null, 0, row);
         }

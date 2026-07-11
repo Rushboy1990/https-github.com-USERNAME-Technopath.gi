@@ -26,6 +26,13 @@ namespace Technopath.Combat.Events
         }
 
         public CombatEvent Dequeue() => _events.Dequeue();
+        public IReadOnlyList<CombatEvent> Drain()
+        {
+            var result = new List<CombatEvent>(_events.Count);
+            while (_events.Count > 0)
+                result.Add(_events.Dequeue());
+            return result;
+        }
         public void Clear() => _events.Clear();
     }
 }
