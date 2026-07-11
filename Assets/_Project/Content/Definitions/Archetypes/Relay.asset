@@ -23,5 +23,6 @@ MonoBehaviour:
   abilityRulesText: After this robot is moved by swap, grant 1 armor to the initiator
     once per phase.
   triggerMoment: 2
+  eventScope: 0
   frequency: 2
   effectValue: 1

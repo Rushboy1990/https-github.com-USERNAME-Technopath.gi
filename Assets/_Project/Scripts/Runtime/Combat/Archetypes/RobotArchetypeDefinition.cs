@@ -20,6 +20,7 @@ namespace Technopath.Combat.Archetypes
         [SerializeField] private string abilityName;
         [SerializeField, TextArea] private string abilityRulesText;
         [SerializeField] private AbilityTriggerMoment triggerMoment;
+        [SerializeField] private AbilityEventScope eventScope;
         [SerializeField] private AbilityFrequency frequency = AbilityFrequency.OncePerPhase;
         [SerializeField, Min(0)] private int effectValue = 1;
 
@@ -33,6 +34,7 @@ namespace Technopath.Combat.Archetypes
         public string AbilityName => abilityName;
         public string AbilityRulesText => abilityRulesText;
         public AbilityTriggerMoment TriggerMoment => triggerMoment;
+        public AbilityEventScope EventScope => eventScope;
         public AbilityFrequency Frequency => frequency;
         public int EffectValue => effectValue;
 

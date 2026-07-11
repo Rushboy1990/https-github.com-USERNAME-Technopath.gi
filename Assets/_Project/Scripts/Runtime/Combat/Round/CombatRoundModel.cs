@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Technopath.Combat.Board;
 using Technopath.Combat.Rules;
+using Technopath.Combat.Archetypes;
 
 namespace Technopath.Combat.Round
 {
@@ -12,11 +13,12 @@ namespace Technopath.Combat.Round
         private readonly IReadOnlyList<MutantProfile> _profiles;
         private IReadOnlyList<MutantIntent> _intents;
 
-        public CombatRoundModel(BattlefieldModel battlefield, IReadOnlyList<MutantProfile> profiles, int seed)
+        public CombatRoundModel(BattlefieldModel battlefield, IReadOnlyList<MutantProfile> profiles, int seed,
+            IReadOnlyDictionary<string, RobotArchetypeDefinition> archetypes = null)
         {
             Battlefield = battlefield;
             _profiles = profiles;
-            PlayerTurn = new PlayerTurnModel(battlefield);
+            PlayerTurn = new PlayerTurnModel(battlefield, PlayerTurnModel.StartingActionPoints, archetypes);
             Phase = CombatPhase.PreparingIntents;
             PrepareIntents(seed);
             Phase = CombatPhase.PlayerTurn;

@@ -6,6 +6,7 @@ using Technopath.Combat.Board;
 using Technopath.Combat.Rules;
 using Technopath.Combat.Round;
 using Technopath.Combat.Events;
+using Technopath.Combat.Archetypes;
 using UnityEngine;
 
 namespace Technopath.Combat.Presentation
@@ -19,6 +20,7 @@ namespace Technopath.Combat.Presentation
         [SerializeField] private Transform unitsRoot;
         [SerializeField] private AttackTraceView attackTracePrefab;
         [SerializeField] private int formationSeed = 1701;
+        [SerializeField] private RobotArchetypeDefinition[] testArchetypes = Array.Empty<RobotArchetypeDefinition>();
 
         private readonly Dictionary<string, UnitTokenView> _unitViews = new();
         private BattlefieldModel _battlefield;
@@ -26,6 +28,7 @@ namespace Technopath.Combat.Presentation
         private CombatRoundModel _combat;
         private GridCellView _selectedSource;
         private bool _isAnimating;
+        private readonly ConditionalAbilityEngine _abilityEngine = new();
 
         public string SelectionDescription { get; private set; } = "None";
         public string BattleLog { get; private set; } = "Select a player unit, then an adjacent cell.";
@@ -85,6 +88,7 @@ namespace Technopath.Combat.Presentation
         private IEnumerator PerformMove(GridCellView source, GridCellView destination)
         {
             _isAnimating = true;
+            _abilityEngine.BeginAction();
             var initiatorId = _battlefield.Player[source.Position].OccupantId;
             var displacedId = _battlefield.Player[destination.Position].OccupantId;
             var result = _turn.Move(source.Position, destination.Position);
@@ -130,7 +134,15 @@ namespace Technopath.Combat.Presentation
                 new("mutant-2", 20, 2),
                 new("mutant-3", 30, 3)
             };
-            _combat = new CombatRoundModel(_battlefield, profiles, formationSeed);
+            var archetypes = new Dictionary<string, RobotArchetypeDefinition>();
+            for (var index = 0; index < testArchetypes.Length && index < 3; index++)
+            {
+                var unitId = $"robot-{index + 1}";
+                archetypes.Add(unitId, testArchetypes[index]);
+                _abilityEngine.Register(unitId, testArchetypes[index]);
+            }
+            _abilityEngine.BeginPhase();
+            _combat = new CombatRoundModel(_battlefield, profiles, formationSeed, archetypes);
             _turn = _combat.PlayerTurn;
             SpawnGridUnits(_battlefield.Player);
             SpawnGridUnits(_battlefield.Enemy);
@@ -166,6 +178,7 @@ namespace Technopath.Combat.Presentation
 
             if (_combat.Phase == CombatPhase.PlayerTurn)
             {
+                _abilityEngine.BeginPhase();
                 ShowIntents();
                 BattleLog += $" Round {_combat.RoundNumber} started.";
             }
@@ -243,6 +256,8 @@ namespace Technopath.Combat.Presentation
                 if (!string.IsNullOrEmpty(combatEvent.SourceId)) builder.Append($"[{combatEvent.SourceId}]");
                 if (!string.IsNullOrEmpty(combatEvent.TargetId)) builder.Append($"({combatEvent.TargetId})");
                 if (combatEvent.Value != 0) builder.Append($":{combatEvent.Value}");
+                foreach (var activation in _abilityEngine.Evaluate(combatEvent))
+                    builder.Append($" → Ability[{activation.UnitId}:{activation.Definition.AbilityName}]={activation.EffectValue}");
             }
             DetailedCombatLog = builder.ToString();
         }
@@ -268,6 +283,8 @@ namespace Technopath.Combat.Presentation
                 throw new InvalidOperationException("BattlefieldPresenter requires exactly nine cells for each side.");
             if (unitPrefab == null || unitsRoot == null || attackTracePrefab == null)
                 throw new InvalidOperationException("BattlefieldPresenter prefab and units root references are required.");
+            if (testArchetypes.Length < 3)
+                throw new InvalidOperationException("BattlefieldPresenter requires three test archetype definitions.");
         }
     }
 }

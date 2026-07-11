@@ -187,6 +187,10 @@ MonoBehaviour:
   unitsRoot: {fileID: 396964102}
   attackTracePrefab: {fileID: 8849899432274201027, guid: f887f40a8f6aa0441a67231d06480d36, type: 3}
   formationSeed: 1701
+  testArchetypes:
+  - {fileID: 11400000, guid: 6b7a8f70cca3fb14c8428ab2ce15a91f, type: 2}
+  - {fileID: 11400000, guid: 6d5bd9a75cf09e04181b897f3797c072, type: 2}
+  - {fileID: 11400000, guid: 574c7423a9459314e913871375133a49, type: 2}
 --- !u!4 &93263150
 Transform:
   m_ObjectHideFlags: 0

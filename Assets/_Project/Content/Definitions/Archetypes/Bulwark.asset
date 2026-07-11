@@ -23,5 +23,6 @@ MonoBehaviour:
   abilityRulesText: When an ally in the same row is damaged, absorb 1 damage once
     per phase.
   triggerMoment: 4
+  eventScope: 1
   frequency: 2
   effectValue: 1

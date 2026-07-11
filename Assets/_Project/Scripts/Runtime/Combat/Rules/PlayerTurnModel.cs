@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Technopath.Combat.Board;
 using Technopath.Combat.Events;
+using Technopath.Combat.Archetypes;
 
 namespace Technopath.Combat.Rules
 {
@@ -12,10 +13,13 @@ namespace Technopath.Combat.Rules
         private readonly BattlefieldModel _battlefield;
         private readonly Dictionary<string, CombatUnitState> _units = new();
         private readonly HashSet<string> _independentlyActivated = new();
+        private readonly IReadOnlyDictionary<string, RobotArchetypeDefinition> _archetypes;
 
-        public PlayerTurnModel(BattlefieldModel battlefield, int actionPoints = StartingActionPoints)
+        public PlayerTurnModel(BattlefieldModel battlefield, int actionPoints = StartingActionPoints,
+            IReadOnlyDictionary<string, RobotArchetypeDefinition> archetypes = null)
         {
             _battlefield = battlefield ?? throw new ArgumentNullException(nameof(battlefield));
+            _archetypes = archetypes;
             ActionPoints = actionPoints;
             RegisterUnits(battlefield.Player, 10, 2);
             RegisterUnits(battlefield.Enemy, 6, 1);
@@ -140,6 +144,12 @@ namespace Technopath.Combat.Rules
             {
                 if (cell.Occupancy == CellOccupancyKind.Unit)
                 {
+                    if (_archetypes != null && _archetypes.TryGetValue(cell.OccupantId, out var archetype))
+                    {
+                        _units.Add(cell.OccupantId, new CombatUnitState(cell.OccupantId, grid.Side,
+                            archetype.MaximumHealth, archetype.AutoAttackDamage, archetype.MaximumArmor));
+                        continue;
+                    }
                     var armor = grid.Side == BoardSide.Player ? 3 : 2;
                     _units.Add(cell.OccupantId, new CombatUnitState(cell.OccupantId, grid.Side, health, damage, armor));
                 }

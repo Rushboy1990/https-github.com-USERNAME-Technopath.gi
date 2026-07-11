@@ -23,5 +23,6 @@ MonoBehaviour:
   abilityRulesText: After this robot attacks, mark the target for 1 additional damage
     from the next ally attack.
   triggerMoment: 3
+  eventScope: 0
   frequency: 2
   effectValue: 1
