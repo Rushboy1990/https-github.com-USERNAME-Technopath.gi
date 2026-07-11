@@ -22,16 +22,24 @@ namespace Technopath.Debugging
             EnsureStyles();
 
             const float width = 360f;
-            const float height = 136f;
+            const float height = 218f;
             var rect = new Rect(16f, 16f, width, height);
 
             GUI.Box(rect, GUIContent.none, _panelStyle);
             GUILayout.BeginArea(new Rect(rect.x + 12f, rect.y + 10f, width - 24f, height - 20f));
             GUILayout.Label("TECHNOPATH • COMBAT SANDBOX", _labelStyle);
             GUILayout.Label($"Scene: {SceneManager.GetActiveScene().name}", _labelStyle);
-            GUILayout.Label("Phase: Iteration 1", _labelStyle);
+            GUILayout.Label("Phase: Iteration 2", _labelStyle);
             GUILayout.Label($"Selection: {(battlefieldPresenter != null ? battlefieldPresenter.SelectionDescription : "None")}", _labelStyle);
-            GUILayout.Label("Action Points: —", _labelStyle);
+            GUILayout.Label($"Action Points: {(battlefieldPresenter != null ? battlefieldPresenter.ActionPoints : 0)}", _labelStyle);
+            GUILayout.Label($"Log: {(battlefieldPresenter != null ? battlefieldPresenter.BattleLog : "—")}", _labelStyle);
+            if (battlefieldPresenter != null)
+            {
+                if (battlefieldPresenter.ActionPoints > 0 && GUILayout.Button("Finish player phase"))
+                    battlefieldPresenter.FinishTurn();
+                else if (battlefieldPresenter.ActionPoints == 0 && GUILayout.Button("Start next player phase"))
+                    battlefieldPresenter.BeginNewPlayerTurn();
+            }
             GUILayout.EndArea();
         }
 

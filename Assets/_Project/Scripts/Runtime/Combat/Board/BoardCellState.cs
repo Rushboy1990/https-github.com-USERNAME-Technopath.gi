@@ -32,5 +32,12 @@ namespace Technopath.Combat.Board
             Occupancy = CellOccupancyKind.Empty;
             OccupantId = null;
         }
+
+        internal string TakeOccupant()
+        {
+            var occupantId = OccupantId;
+            Clear();
+            return occupantId;
+        }
     }
 }

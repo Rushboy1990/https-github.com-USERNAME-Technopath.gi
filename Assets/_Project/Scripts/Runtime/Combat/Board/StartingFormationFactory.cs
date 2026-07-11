@@ -32,6 +32,11 @@ namespace Technopath.Combat.Board
                 available.RemoveAt(choice);
             }
 
+
+            battlefield.Enemy.TryOccupy(new GridPosition(0, 0), CellOccupancyKind.Unit, "mutant-1");
+            battlefield.Enemy.TryOccupy(new GridPosition(1, 1), CellOccupancyKind.Unit, "mutant-2");
+            battlefield.Enemy.TryOccupy(new GridPosition(2, 0), CellOccupancyKind.Unit, "mutant-3");
+
             return battlefield;
         }
     }

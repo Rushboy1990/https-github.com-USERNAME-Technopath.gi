@@ -30,5 +30,29 @@ namespace Technopath.Combat.Board
             cell.Occupy(occupancy, occupantId);
             return true;
         }
+
+        public void MoveUnit(GridPosition from, GridPosition to)
+        {
+            var source = this[from];
+            var destination = this[to];
+            if (source.Occupancy != CellOccupancyKind.Unit || !destination.IsEmpty)
+                throw new System.InvalidOperationException("Move requires a unit source and an empty destination.");
+
+            var occupantId = source.TakeOccupant();
+            destination.Occupy(CellOccupancyKind.Unit, occupantId);
+        }
+
+        public void SwapUnits(GridPosition first, GridPosition second)
+        {
+            var firstCell = this[first];
+            var secondCell = this[second];
+            if (firstCell.Occupancy != CellOccupancyKind.Unit || secondCell.Occupancy != CellOccupancyKind.Unit)
+                throw new System.InvalidOperationException("Swap requires units in both cells.");
+
+            var firstId = firstCell.TakeOccupant();
+            var secondId = secondCell.TakeOccupant();
+            firstCell.Occupy(CellOccupancyKind.Unit, secondId);
+            secondCell.Occupy(CellOccupancyKind.Unit, firstId);
+        }
     }
 }

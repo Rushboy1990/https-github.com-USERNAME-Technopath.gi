@@ -185,6 +185,7 @@ MonoBehaviour:
   - {fileID: 1555886506}
   unitPrefab: {fileID: 5497210659325959200, guid: 994606eb4b434744a9fa43fbdcedcc30, type: 3}
   unitsRoot: {fileID: 396964102}
+  attackTracePrefab: {fileID: 8849899432274201027, guid: f887f40a8f6aa0441a67231d06480d36, type: 3}
   formationSeed: 1701
 --- !u!4 &93263150
 Transform:
