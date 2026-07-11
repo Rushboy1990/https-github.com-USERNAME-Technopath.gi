@@ -1,0 +1,11 @@
+{
+  "name": "Technopath.Editor",
+  "rootNamespace": "Technopath.Editor",
+  "references": [
+    "Technopath.Runtime"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "autoReferenced": true
+}

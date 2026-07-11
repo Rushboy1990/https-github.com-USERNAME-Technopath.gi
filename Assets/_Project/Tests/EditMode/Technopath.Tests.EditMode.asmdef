@@ -1,0 +1,14 @@
+{
+  "name": "Technopath.Tests.EditMode",
+  "rootNamespace": "Technopath.Tests",
+  "references": [
+    "Technopath.Runtime"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ],
+  "autoReferenced": false
+}
