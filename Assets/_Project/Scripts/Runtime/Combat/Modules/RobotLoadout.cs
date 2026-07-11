@@ -1,0 +1,74 @@
+using System;
+using System.Collections.Generic;
+using Technopath.Combat.Archetypes;
+
+namespace Technopath.Combat.Modules
+{
+    public sealed class RobotLoadout
+    {
+        private readonly RobotModuleDefinition[] _modifiers = new RobotModuleDefinition[3];
+
+        public RobotLoadout(RobotArchetypeDefinition archetype)
+        {
+            Archetype = archetype ?? throw new ArgumentNullException(nameof(archetype));
+        }
+
+        public RobotArchetypeDefinition Archetype { get; }
+        public RobotModuleDefinition Core { get; private set; }
+        public RobotModuleDefinition Processor { get; private set; }
+        public IReadOnlyList<RobotModuleDefinition> Modifiers => _modifiers;
+
+        public bool TryEquip(RobotModuleDefinition module, int modifierIndex = 0)
+        {
+            if (module == null || !module.IsCompatible(Archetype.Role)) return false;
+            switch (module.SlotType)
+            {
+                case ModuleSlotType.Core:
+                    Core = module;
+                    return true;
+                case ModuleSlotType.Processor:
+                    Processor = module;
+                    return true;
+                case ModuleSlotType.Modifier when modifierIndex >= 0 && modifierIndex < _modifiers.Length:
+                    _modifiers[modifierIndex] = module;
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        public void Clear(ModuleSlotType slotType, int modifierIndex = 0)
+        {
+            switch (slotType)
+            {
+                case ModuleSlotType.Core: Core = null; break;
+                case ModuleSlotType.Processor: Processor = null; break;
+                case ModuleSlotType.Modifier when modifierIndex >= 0 && modifierIndex < _modifiers.Length:
+                    _modifiers[modifierIndex] = null;
+                    break;
+            }
+        }
+
+        public RobotStatSummary CalculateStats()
+        {
+            var health = Archetype.MaximumHealth;
+            var armor = Archetype.MaximumArmor;
+            var attack = Archetype.AutoAttackDamage;
+            var sources = new List<string> { $"Archetype: {Archetype.DisplayName}" };
+            Apply(Core, ref health, ref armor, ref attack, sources);
+            Apply(Processor, ref health, ref armor, ref attack, sources);
+            foreach (var modifier in _modifiers) Apply(modifier, ref health, ref armor, ref attack, sources);
+            return new RobotStatSummary(Math.Max(1, health), Math.Max(0, armor), Math.Max(0, attack), sources);
+        }
+
+        private static void Apply(RobotModuleDefinition module, ref int health, ref int armor, ref int attack,
+            ICollection<string> sources)
+        {
+            if (module == null) return;
+            health += module.HealthModifier;
+            armor += module.ArmorModifier;
+            attack += module.AttackModifier;
+            sources.Add($"{module.SlotType}: {module.DisplayName} (Lv.{module.Level} {module.Rarity})");
+        }
+    }
+}

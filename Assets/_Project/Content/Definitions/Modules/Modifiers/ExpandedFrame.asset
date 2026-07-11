@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8c4fd79d264c19c458e3be78bab2fb07, type: 3}
+  m_Name: ExpandedFrame
+  m_EditorClassIdentifier: Technopath.Runtime::Technopath.Combat.Modules.RobotModuleDefinition
+  id: module-modifier.expanded-frame
+  displayName: Expanded Frame
+  rulesText: Temporary iteration 6 module for loadout testing.
+  slotType: 2
+  rarity: 0
+  level: 1
+  compatibleRoles: 
+  healthModifier: 3
+  armorModifier: 0
+  attackModifier: 0
