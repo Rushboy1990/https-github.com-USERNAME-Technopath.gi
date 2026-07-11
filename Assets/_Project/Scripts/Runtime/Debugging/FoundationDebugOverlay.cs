@@ -29,16 +29,14 @@ namespace Technopath.Debugging
             GUILayout.BeginArea(new Rect(rect.x + 12f, rect.y + 10f, width - 24f, height - 20f));
             GUILayout.Label("TECHNOPATH • COMBAT SANDBOX", _labelStyle);
             GUILayout.Label($"Scene: {SceneManager.GetActiveScene().name}", _labelStyle);
-            GUILayout.Label("Phase: Iteration 2", _labelStyle);
+            GUILayout.Label($"Round: {(battlefieldPresenter != null ? battlefieldPresenter.RoundNumber : 0)} • Phase: {(battlefieldPresenter != null ? battlefieldPresenter.PhaseDescription : "None")}", _labelStyle);
             GUILayout.Label($"Selection: {(battlefieldPresenter != null ? battlefieldPresenter.SelectionDescription : "None")}", _labelStyle);
             GUILayout.Label($"Action Points: {(battlefieldPresenter != null ? battlefieldPresenter.ActionPoints : 0)}", _labelStyle);
             GUILayout.Label($"Log: {(battlefieldPresenter != null ? battlefieldPresenter.BattleLog : "—")}", _labelStyle);
             if (battlefieldPresenter != null)
             {
-                if (battlefieldPresenter.ActionPoints > 0 && GUILayout.Button("Finish player phase"))
+                if (battlefieldPresenter.PhaseDescription == "PlayerTurn" && GUILayout.Button("Finish player phase"))
                     battlefieldPresenter.FinishTurn();
-                else if (battlefieldPresenter.ActionPoints == 0 && GUILayout.Button("Start next player phase"))
-                    battlefieldPresenter.BeginNewPlayerTurn();
             }
             GUILayout.EndArea();
         }

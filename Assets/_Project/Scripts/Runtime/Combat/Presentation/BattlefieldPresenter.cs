@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Text;
 using Technopath.Combat.Board;
 using Technopath.Combat.Rules;
+using Technopath.Combat.Round;
 using UnityEngine;
 
 namespace Technopath.Combat.Presentation
@@ -21,12 +22,15 @@ namespace Technopath.Combat.Presentation
         private readonly Dictionary<string, UnitTokenView> _unitViews = new();
         private BattlefieldModel _battlefield;
         private PlayerTurnModel _turn;
+        private CombatRoundModel _combat;
         private GridCellView _selectedSource;
         private bool _isAnimating;
 
         public string SelectionDescription { get; private set; } = "None";
         public string BattleLog { get; private set; } = "Select a player unit, then an adjacent cell.";
         public int ActionPoints => _turn?.ActionPoints ?? 0;
+        public string PhaseDescription => _combat?.Phase.ToString() ?? "None";
+        public int RoundNumber => _combat?.RoundNumber ?? 0;
 
         private void Awake()
         {
@@ -38,7 +42,7 @@ namespace Technopath.Combat.Presentation
 
         public void Select(GridCellView cell)
         {
-            if (cell == null || _isAnimating || _turn.IsFinished)
+            if (cell == null || _isAnimating || _combat.Phase != CombatPhase.PlayerTurn || _turn.IsFinished)
                 return;
 
             if (_selectedSource != null && cell.Side == BoardSide.Player &&
@@ -69,20 +73,11 @@ namespace Technopath.Combat.Presentation
 
         public void FinishTurn()
         {
-            if (_turn == null || _isAnimating)
+            if (_turn == null || _isAnimating || _combat.Phase != CombatPhase.PlayerTurn)
                 return;
-            _turn.FinishTurn();
             _selectedSource = null;
             ClearHighlights();
-            BattleLog = "Player phase finished. Remaining action points burned.";
-        }
-
-        public void BeginNewPlayerTurn()
-        {
-            if (_turn == null || !_turn.IsFinished || _isAnimating)
-                return;
-            _turn.BeginNewTurn();
-            BattleLog = "New player phase started.";
+            StartCoroutine(PerformMutantTurn());
         }
 
         private IEnumerator PerformMove(GridCellView source, GridCellView destination)
@@ -107,6 +102,15 @@ namespace Technopath.Combat.Presentation
                 else
                     log.Append($"{attack.AttackerId} fired into empty row. ");
             }
+            foreach (var attack in result.Attacks)
+            {
+                if (attack.HasTarget && !_turn.IsAlive(attack.TargetId) &&
+                    _unitViews.TryGetValue(attack.TargetId, out var deadView))
+                {
+                    _unitViews.Remove(attack.TargetId);
+                    Destroy(deadView.gameObject);
+                }
+            }
             BattleLog = log.ToString();
             SelectionDescription = "None";
             _selectedSource = null;
@@ -117,9 +121,63 @@ namespace Technopath.Combat.Presentation
         private void BuildCombat()
         {
             _battlefield = StartingFormationFactory.Create(formationSeed);
-            _turn = new PlayerTurnModel(_battlefield);
+            var profiles = new List<MutantProfile>
+            {
+                new("mutant-1", 10, 1),
+                new("mutant-2", 20, 2),
+                new("mutant-3", 30, 3)
+            };
+            _combat = new CombatRoundModel(_battlefield, profiles, formationSeed);
+            _turn = _combat.PlayerTurn;
             SpawnGridUnits(_battlefield.Player);
             SpawnGridUnits(_battlefield.Enemy);
+            ShowIntents();
+        }
+
+        private IEnumerator PerformMutantTurn()
+        {
+            _isAnimating = true;
+            foreach (var unit in _unitViews.Values) unit.HideIntent();
+            _combat.FinishPlayerTurn();
+            BattleLog = "Mutants are executing their intents.";
+            var actions = _combat.ResolveMutantTurn(formationSeed + _combat.RoundNumber);
+
+            foreach (var action in actions)
+            {
+                ShowAttackFeedback(action.Attack, action.Origin.Row);
+                BattleLog = action.Attack.HasTarget
+                    ? $"{action.MutantId} dealt {action.Attack.Damage} to {action.Attack.TargetId}."
+                    : $"{action.MutantId} fired into empty row.";
+                yield return new WaitForSeconds(0.38f);
+
+                if (action.Destination.HasValue && _unitViews.TryGetValue(action.MutantId, out var mutant))
+                    yield return mutant.MoveTo(GetCell(BoardSide.Enemy, action.Destination.Value).transform.position, false);
+
+                if (action.Attack.HasTarget && !_turn.IsAlive(action.Attack.TargetId) &&
+                    _unitViews.TryGetValue(action.Attack.TargetId, out var deadView))
+                {
+                    _unitViews.Remove(action.Attack.TargetId);
+                    Destroy(deadView.gameObject);
+                }
+            }
+
+            if (_combat.Phase == CombatPhase.PlayerTurn)
+            {
+                ShowIntents();
+                BattleLog += $" Round {_combat.RoundNumber} started.";
+            }
+            else
+                BattleLog = _combat.Phase == CombatPhase.Victory ? "VICTORY: all required mutants destroyed." : "DEFEAT: Technopath destroyed.";
+            _isAnimating = false;
+        }
+
+        private void ShowIntents()
+        {
+            foreach (var intent in _combat.Intents)
+            {
+                if (_unitViews.TryGetValue(intent.MutantId, out var view))
+                    view.ShowAttackIntent(intent.AttackDamage);
+            }
         }
 
         private void SpawnGridUnits(BattleGridModel grid)

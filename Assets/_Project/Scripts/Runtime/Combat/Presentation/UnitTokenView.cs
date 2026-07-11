@@ -9,6 +9,7 @@ namespace Technopath.Combat.Presentation
     {
         [SerializeField] private SpriteRenderer body;
         [SerializeField] private TextMesh label;
+        [SerializeField] private TextMesh intentLabel;
         [SerializeField] private Color technopathColor = new(0.16f, 0.78f, 0.9f, 1f);
         [SerializeField] private Color robotColor = new(0.42f, 0.72f, 0.35f, 1f);
         [SerializeField] private Color mutantColor = new(0.82f, 0.28f, 0.3f, 1f);
@@ -40,6 +41,18 @@ namespace Technopath.Combat.Presentation
                 yield return null;
             }
             transform.position = destination;
+        }
+
+        public void ShowAttackIntent(int damage)
+        {
+            if (intentLabel != null)
+                intentLabel.text = $"ATK {damage}";
+        }
+
+        public void HideIntent()
+        {
+            if (intentLabel != null)
+                intentLabel.text = string.Empty;
         }
 
         private void Reset()

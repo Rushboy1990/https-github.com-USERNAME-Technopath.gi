@@ -21,6 +21,21 @@ namespace Technopath.Combat.Board
         public IReadOnlyList<BoardCellState> Cells => _cells;
         public BoardCellState this[GridPosition position] => _cells[position.Index];
 
+        public bool TryFindUnit(string unitId, out GridPosition position)
+        {
+            foreach (var cell in _cells)
+            {
+                if (cell.Occupancy == CellOccupancyKind.Unit && cell.OccupantId == unitId)
+                {
+                    position = cell.Position;
+                    return true;
+                }
+            }
+
+            position = default;
+            return false;
+        }
+
         public bool TryOccupy(GridPosition position, CellOccupancyKind occupancy, string occupantId)
         {
             var cell = this[position];
@@ -53,6 +68,14 @@ namespace Technopath.Combat.Board
             var secondId = secondCell.TakeOccupant();
             firstCell.Occupy(CellOccupancyKind.Unit, secondId);
             secondCell.Occupy(CellOccupancyKind.Unit, firstId);
+        }
+
+        public bool RemoveUnit(string unitId)
+        {
+            if (!TryFindUnit(unitId, out var position))
+                return false;
+            this[position].Clear();
+            return true;
         }
     }
 }

@@ -24,6 +24,18 @@ namespace Technopath.Combat.Rules
         public bool IsFinished => ActionPoints == 0;
 
         public CombatUnitState GetUnit(string id) => _units[id];
+        public bool IsAlive(string id) => _units.TryGetValue(id, out var unit) && unit.IsAlive;
+
+        public bool ApplyDamage(string unitId, int damage)
+        {
+            var unit = _units[unitId];
+            unit.TakeDamage(damage);
+            if (unit.IsAlive)
+                return false;
+
+            _battlefield.GetGrid(unit.Side).RemoveUnit(unitId);
+            return true;
+        }
 
         public bool CanMove(GridPosition from, GridPosition to)
         {
@@ -87,7 +99,7 @@ namespace Technopath.Combat.Rules
                     continue;
 
                 var target = _units[cell.OccupantId];
-                target.TakeDamage(attacker.AttackDamage);
+                ApplyDamage(target.Id, attacker.AttackDamage);
                 return new AutoAttackResult(attackerId, target.Id, attacker.AttackDamage);
             }
 
