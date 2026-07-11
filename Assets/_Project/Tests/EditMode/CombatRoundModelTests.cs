@@ -22,7 +22,8 @@ namespace Technopath.Tests.EditMode
             var actions = combat.ResolveMutantTurn(nextIntentSeed: 6);
 
             Assert.That(actions[0].Attack.TargetId, Is.EqualTo(StartingFormationFactory.TechnopathId));
-            Assert.That(combat.PlayerTurn.GetUnit(StartingFormationFactory.TechnopathId).Health, Is.EqualTo(7));
+            Assert.That(combat.PlayerTurn.GetUnit(StartingFormationFactory.TechnopathId).Health, Is.EqualTo(10));
+            Assert.That(combat.PlayerTurn.GetUnit(StartingFormationFactory.TechnopathId).Armor, Is.EqualTo(3));
             Assert.That(actions[0].Destination, Is.EqualTo(plannedDestination));
             Assert.That(combat.Phase, Is.EqualTo(CombatPhase.PlayerTurn));
             Assert.That(combat.RoundNumber, Is.EqualTo(2));
@@ -55,8 +56,8 @@ namespace Technopath.Tests.EditMode
             field.Enemy.TryOccupy(new GridPosition(1, 2), CellOccupancyKind.Unit, "second");
             var profiles = new List<MutantProfile>
             {
-                new("first", 1, 6),
-                new("second", 2, 6)
+                new("first", 1, 7),
+                new("second", 2, 7)
             };
             var combat = new CombatRoundModel(field, profiles, seed: 3);
             combat.FinishPlayerTurn();

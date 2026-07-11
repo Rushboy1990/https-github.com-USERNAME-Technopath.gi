@@ -46,9 +46,9 @@ namespace Technopath.Combat.Round
 
                 var targetId = cell.OccupantId;
                 combatState.ApplyDamage(targetId, intent.AttackDamage);
-                return new AutoAttackResult(intent.MutantId, targetId, intent.AttackDamage);
+                return new AutoAttackResult(intent.MutantId, targetId, intent.AttackDamage, row);
             }
-            return new AutoAttackResult(intent.MutantId, null, 0);
+            return new AutoAttackResult(intent.MutantId, null, 0, row);
         }
     }
 }

@@ -18,7 +18,8 @@ namespace Technopath.Tests.EditMode
             Assert.That(field.Player[new GridPosition(0, 1)].OccupantId, Is.EqualTo("robot-a"));
             Assert.That(result.Attacks, Has.Count.EqualTo(1));
             Assert.That(result.Attacks[0].TargetId, Is.EqualTo("mutant-near"));
-            Assert.That(turn.GetUnit("mutant-near").Health, Is.EqualTo(4));
+            Assert.That(turn.GetUnit("mutant-near").Health, Is.EqualTo(6));
+            Assert.That(turn.GetUnit("mutant-near").Armor, Is.Zero);
         }
 
         [Test]
@@ -33,8 +34,10 @@ namespace Technopath.Tests.EditMode
             Assert.That(result.WasSwap, Is.True);
             Assert.That(result.Attacks[0].AttackerId, Is.EqualTo("robot-a"));
             Assert.That(result.Attacks[0].TargetId, Is.EqualTo("mutant-middle"));
+            Assert.That(result.Attacks[0].FiringRow, Is.EqualTo(1));
             Assert.That(result.Attacks[1].AttackerId, Is.EqualTo("robot-b"));
             Assert.That(result.Attacks[1].TargetId, Is.EqualTo("mutant-near"));
+            Assert.That(result.Attacks[1].FiringRow, Is.EqualTo(0));
         }
 
         [Test]

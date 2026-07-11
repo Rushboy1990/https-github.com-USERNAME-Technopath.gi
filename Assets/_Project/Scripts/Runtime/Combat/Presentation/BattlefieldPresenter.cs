@@ -96,7 +96,7 @@ namespace Technopath.Combat.Presentation
             log.Append(result.WasSwap ? "Swap. " : "Move. ");
             foreach (var attack in result.Attacks)
             {
-                ShowAttackFeedback(attack, destination.Position.Row);
+                ShowAttackFeedback(attack);
                 if (attack.HasTarget)
                     log.Append($"{attack.AttackerId} dealt {attack.Damage} to {attack.TargetId}. ");
                 else
@@ -144,7 +144,7 @@ namespace Technopath.Combat.Presentation
 
             foreach (var action in actions)
             {
-                ShowAttackFeedback(action.Attack, action.Origin.Row);
+                ShowAttackFeedback(action.Attack);
                 BattleLog = action.Attack.HasTarget
                     ? $"{action.MutantId} dealt {action.Attack.Damage} to {action.Attack.TargetId}."
                     : $"{action.MutantId} fired into empty row.";
@@ -193,15 +193,24 @@ namespace Technopath.Combat.Presentation
             }
         }
 
-        private void ShowAttackFeedback(AutoAttackResult attack, int row)
+        private void ShowAttackFeedback(AutoAttackResult attack)
         {
             if (attackTracePrefab == null || !_unitViews.TryGetValue(attack.AttackerId, out var attacker))
                 return;
 
             var destination = attack.HasTarget && _unitViews.TryGetValue(attack.TargetId, out var target)
                 ? target.transform.position
-                : GetCell(BoardSide.Enemy, new GridPosition(row, 2)).transform.position + Vector3.right;
+                : GetMissDestination(attack);
             Instantiate(attackTracePrefab, unitsRoot).Play(attacker.transform.position, destination, attack.Damage);
+        }
+
+        private Vector3 GetMissDestination(AutoAttackResult attack)
+        {
+            var attackerSide = _turn.GetUnit(attack.AttackerId).Side;
+            var targetSide = attackerSide == BoardSide.Player ? BoardSide.Enemy : BoardSide.Player;
+            var edgeColumn = attackerSide == BoardSide.Player ? GridPosition.Size - 1 : 0;
+            var direction = attackerSide == BoardSide.Player ? Vector3.right : Vector3.left;
+            return GetCell(targetSide, new GridPosition(attack.FiringRow, edgeColumn)).transform.position + direction;
         }
 
         private string DescribeUnit(BoardSide side, GridPosition position, string unitId)

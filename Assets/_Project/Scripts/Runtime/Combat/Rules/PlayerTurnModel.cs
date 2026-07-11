@@ -28,13 +28,16 @@ namespace Technopath.Combat.Rules
 
         public bool ApplyDamage(string unitId, int damage)
         {
-            var unit = _units[unitId];
-            unit.TakeDamage(damage);
-            if (unit.IsAlive)
-                return false;
+            return ApplyDamageDetailed(unitId, damage).Killed;
+        }
 
-            _battlefield.GetGrid(unit.Side).RemoveUnit(unitId);
-            return true;
+        public DamageResult ApplyDamageDetailed(string unitId, int damage)
+        {
+            var unit = _units[unitId];
+            var result = unit.TakeDamage(damage);
+            if (result.Killed)
+                _battlefield.GetGrid(unit.Side).RemoveUnit(unitId);
+            return result;
         }
 
         public bool CanMove(GridPosition from, GridPosition to)
@@ -87,6 +90,11 @@ namespace Technopath.Combat.Rules
 
             ActionPoints = actionPoints;
             _independentlyActivated.Clear();
+            foreach (var unit in _units.Values)
+            {
+                if (unit.Side == BoardSide.Player && unit.IsAlive)
+                    unit.RestoreArmor();
+            }
         }
 
         private AutoAttackResult ResolveAutoAttack(string attackerId, int row)
@@ -100,10 +108,10 @@ namespace Technopath.Combat.Rules
 
                 var target = _units[cell.OccupantId];
                 ApplyDamage(target.Id, attacker.AttackDamage);
-                return new AutoAttackResult(attackerId, target.Id, attacker.AttackDamage);
+                return new AutoAttackResult(attackerId, target.Id, attacker.AttackDamage, row);
             }
 
-            return new AutoAttackResult(attackerId, null, 0);
+            return new AutoAttackResult(attackerId, null, 0, row);
         }
 
         private void RegisterUnits(BattleGridModel grid, int health, int damage)
@@ -111,7 +119,10 @@ namespace Technopath.Combat.Rules
             foreach (var cell in grid.Cells)
             {
                 if (cell.Occupancy == CellOccupancyKind.Unit)
-                    _units.Add(cell.OccupantId, new CombatUnitState(cell.OccupantId, grid.Side, health, damage));
+                {
+                    var armor = grid.Side == BoardSide.Player ? 3 : 2;
+                    _units.Add(cell.OccupantId, new CombatUnitState(cell.OccupantId, grid.Side, health, damage, armor));
+                }
             }
         }
 
