@@ -18,6 +18,17 @@ namespace Technopath.Combat.Modules
         public RobotModuleDefinition Processor { get; private set; }
         public IReadOnlyList<RobotModuleDefinition> Modifiers => _modifiers;
 
+        public LoadoutAbilitySummary GetPrimaryAbility()
+        {
+            if (Core != null && Core.HasAbility)
+                return FromModule(Core);
+            return new LoadoutAbilitySummary($"Archetype: {Archetype.DisplayName}", Archetype.AbilityName,
+                Archetype.AbilityRulesText, Archetype.TriggerMoment, Archetype.EffectValue);
+        }
+
+        public LoadoutAbilitySummary GetProcessorAbility() =>
+            Processor != null && Processor.HasAbility ? FromModule(Processor) : null;
+
         public bool TryEquip(RobotModuleDefinition module, int modifierIndex = 0)
         {
             if (module == null || !module.IsCompatible(Archetype.Role)) return false;
@@ -70,5 +81,9 @@ namespace Technopath.Combat.Modules
             attack += module.AttackModifier;
             sources.Add($"{module.SlotType}: {module.DisplayName} (Lv.{module.Level} {module.Rarity})");
         }
+
+        private static LoadoutAbilitySummary FromModule(RobotModuleDefinition module) =>
+            new($"{module.SlotType}: {module.DisplayName}", module.AbilityName, module.AbilityRulesText,
+                module.AbilityTrigger, module.AbilityEffectValue);
     }
 }

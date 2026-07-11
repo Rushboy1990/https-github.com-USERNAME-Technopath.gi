@@ -22,3 +22,8 @@ MonoBehaviour:
   healthModifier: 0
   armorModifier: 1
   attackModifier: 1
+  abilityName: Arc Mark
+  abilityRulesText: 'Replaces the primary ability: after attacking, mark the target
+    for 1 bonus damage.'
+  abilityTrigger: 3
+  abilityEffectValue: 1

@@ -22,3 +22,8 @@ MonoBehaviour:
   healthModifier: 1
   armorModifier: 0
   attackModifier: 1
+  abilityName: Position Cache
+  abilityRulesText: After this robot participates in swap, grant 1 armor to the other
+    participant.
+  abilityTrigger: 2
+  abilityEffectValue: 1

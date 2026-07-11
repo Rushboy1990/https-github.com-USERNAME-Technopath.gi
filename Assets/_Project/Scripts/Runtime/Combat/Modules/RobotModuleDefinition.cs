@@ -22,6 +22,12 @@ namespace Technopath.Combat.Modules
         [SerializeField] private int armorModifier;
         [SerializeField] private int attackModifier;
 
+        [Header("Optional conditional ability")]
+        [SerializeField] private string abilityName;
+        [SerializeField, TextArea] private string abilityRulesText;
+        [SerializeField] private AbilityTriggerMoment abilityTrigger;
+        [SerializeField, Min(0)] private int abilityEffectValue;
+
         public string Id => id;
         public string DisplayName => displayName;
         public string RulesText => rulesText;
@@ -31,6 +37,11 @@ namespace Technopath.Combat.Modules
         public int HealthModifier => healthModifier;
         public int ArmorModifier => armorModifier;
         public int AttackModifier => attackModifier;
+        public string AbilityName => abilityName;
+        public string AbilityRulesText => abilityRulesText;
+        public AbilityTriggerMoment AbilityTrigger => abilityTrigger;
+        public int AbilityEffectValue => abilityEffectValue;
+        public bool HasAbility => !string.IsNullOrWhiteSpace(abilityName);
 
         public bool IsCompatible(ArchetypeRole role)
         {
@@ -44,6 +55,7 @@ namespace Technopath.Combat.Modules
         {
             id = id?.Trim().ToLowerInvariant();
             displayName = displayName?.Trim();
+            abilityName = abilityName?.Trim();
             level = Mathf.Max(1, level);
         }
     }

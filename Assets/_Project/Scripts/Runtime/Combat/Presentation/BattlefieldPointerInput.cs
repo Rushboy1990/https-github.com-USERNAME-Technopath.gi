@@ -11,6 +11,7 @@ namespace Technopath.Combat.Presentation
 
         private void Update()
         {
+            UpdateHover();
             if (!TryReadPointerPress(out var screenPosition))
                 return;
 
@@ -18,6 +19,17 @@ namespace Technopath.Combat.Presentation
             var hit = Physics2D.OverlapPoint(worldPosition);
             if (hit != null && hit.TryGetComponent<GridCellView>(out var cell))
                 presenter.Select(cell);
+            else
+                presenter.ClearInspection();
+        }
+
+        private void UpdateHover()
+        {
+            if (Mouse.current == null) return;
+            var screenPosition = Mouse.current.position.ReadValue();
+            var worldPosition = worldCamera.ScreenToWorldPoint(screenPosition);
+            var hit = Physics2D.OverlapPoint(worldPosition);
+            presenter.Hover(hit != null && hit.TryGetComponent<GridCellView>(out var cell) ? cell : null, screenPosition);
         }
 
         private static bool TryReadPointerPress(out Vector2 position)

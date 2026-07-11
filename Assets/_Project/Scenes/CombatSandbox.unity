@@ -119,6 +119,74 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1001 &47147323
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 70771592541740651, guid: f4feb5e70d43d8e4d91bebf5e8706215, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 70771592541740651, guid: f4feb5e70d43d8e4d91bebf5e8706215, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 70771592541740651, guid: f4feb5e70d43d8e4d91bebf5e8706215, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 70771592541740651, guid: f4feb5e70d43d8e4d91bebf5e8706215, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 70771592541740651, guid: f4feb5e70d43d8e4d91bebf5e8706215, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 70771592541740651, guid: f4feb5e70d43d8e4d91bebf5e8706215, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 70771592541740651, guid: f4feb5e70d43d8e4d91bebf5e8706215, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 70771592541740651, guid: f4feb5e70d43d8e4d91bebf5e8706215, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 70771592541740651, guid: f4feb5e70d43d8e4d91bebf5e8706215, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 70771592541740651, guid: f4feb5e70d43d8e4d91bebf5e8706215, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7345576598333231954, guid: f4feb5e70d43d8e4d91bebf5e8706215, type: 3}
+      propertyPath: m_Name
+      value: RobotInspectionPanel
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: f4feb5e70d43d8e4d91bebf5e8706215, type: 3}
+--- !u!114 &47147324 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1253396949190831391, guid: f4feb5e70d43d8e4d91bebf5e8706215, type: 3}
+  m_PrefabInstance: {fileID: 47147323}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 03d4f6103713db244ae20d5f56721622, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Technopath.Runtime::Technopath.Combat.Presentation.RobotInspectionPanel
 --- !u!1 &93263147
 GameObject:
   m_ObjectHideFlags: 0
@@ -191,6 +259,12 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 6b7a8f70cca3fb14c8428ab2ce15a91f, type: 2}
   - {fileID: 11400000, guid: 6d5bd9a75cf09e04181b897f3797c072, type: 2}
   - {fileID: 11400000, guid: 574c7423a9459314e913871375133a49, type: 2}
+  testLoadoutPresets:
+  - {fileID: 11400000, guid: 455fadcaa5aa06940b5d6ec1b324845d, type: 2}
+  - {fileID: 11400000, guid: 00afb95a6259e914c89a0234e2a222a7, type: 2}
+  - {fileID: 11400000, guid: 31a634b09ebd4d24ca399760d572a1a3, type: 2}
+  - {fileID: 11400000, guid: 76300d8c84379f54491da00a828563da, type: 2}
+  inspectionPanel: {fileID: 47147324}
 --- !u!4 &93263150
 Transform:
   m_ObjectHideFlags: 0
@@ -2195,3 +2269,4 @@ SceneRoots:
   - {fileID: 1280866130}
   - {fileID: 93263150}
   - {fileID: 1172362694}
+  - {fileID: 47147323}

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Technopath.Combat.Board;
 using Technopath.Combat.Events;
 using Technopath.Combat.Archetypes;
+using Technopath.Combat.Modules;
 
 namespace Technopath.Combat.Rules
 {
@@ -14,12 +15,21 @@ namespace Technopath.Combat.Rules
         private readonly Dictionary<string, CombatUnitState> _units = new();
         private readonly HashSet<string> _independentlyActivated = new();
         private readonly IReadOnlyDictionary<string, RobotArchetypeDefinition> _archetypes;
+        private readonly IReadOnlyDictionary<string, RobotLoadout> _loadouts;
 
         public PlayerTurnModel(BattlefieldModel battlefield, int actionPoints = StartingActionPoints,
             IReadOnlyDictionary<string, RobotArchetypeDefinition> archetypes = null)
+            : this(battlefield, actionPoints, archetypes, null)
+        {
+        }
+
+        public PlayerTurnModel(BattlefieldModel battlefield, int actionPoints,
+            IReadOnlyDictionary<string, RobotArchetypeDefinition> archetypes,
+            IReadOnlyDictionary<string, RobotLoadout> loadouts)
         {
             _battlefield = battlefield ?? throw new ArgumentNullException(nameof(battlefield));
             _archetypes = archetypes;
+            _loadouts = loadouts;
             ActionPoints = actionPoints;
             RegisterUnits(battlefield.Player, 10, 2);
             RegisterUnits(battlefield.Enemy, 6, 1);
@@ -147,6 +157,13 @@ namespace Technopath.Combat.Rules
             {
                 if (cell.Occupancy == CellOccupancyKind.Unit)
                 {
+                    if (_loadouts != null && _loadouts.TryGetValue(cell.OccupantId, out var loadout))
+                    {
+                        var stats = loadout.CalculateStats();
+                        _units.Add(cell.OccupantId, new CombatUnitState(cell.OccupantId, grid.Side,
+                            stats.Health, stats.Attack, stats.Armor));
+                        continue;
+                    }
                     if (_archetypes != null && _archetypes.TryGetValue(cell.OccupantId, out var archetype))
                     {
                         _units.Add(cell.OccupantId, new CombatUnitState(cell.OccupantId, grid.Side,

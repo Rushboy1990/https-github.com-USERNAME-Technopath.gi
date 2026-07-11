@@ -22,3 +22,8 @@ MonoBehaviour:
   healthModifier: 0
   armorModifier: 3
   attackModifier: -1
+  abilityName: Fortress Pulse
+  abilityRulesText: 'Replaces the primary ability: at player phase start, restore
+    2 armor to adjacent allies.'
+  abilityTrigger: 0
+  abilityEffectValue: 2

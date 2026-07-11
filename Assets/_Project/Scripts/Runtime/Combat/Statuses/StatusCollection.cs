@@ -51,5 +51,12 @@ namespace Technopath.Combat.Statuses
             }
             return results;
         }
+
+        public IReadOnlyList<ChargedStatusState> GetActive(string unitId)
+        {
+            if (!_byUnit.TryGetValue(unitId, out var statuses))
+                return System.Array.Empty<ChargedStatusState>();
+            return statuses.Values.Where(status => !status.IsExpired).ToArray();
+        }
     }
 }

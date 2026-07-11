@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ca82438430ae56548911bc965cdcae66, type: 3}
+  m_Name: StrikerDefense
+  m_EditorClassIdentifier: Technopath.Runtime::Technopath.Combat.Modules.RobotLoadoutPresetDefinition
+  id: loadout.striker-defense
+  displayName: Striker Defender
+  archetype: {fileID: 11400000, guid: 6b7a8f70cca3fb14c8428ab2ce15a91f, type: 2}
+  core: {fileID: 11400000, guid: c09123bcbc1cb734ab6ff8225b97e0d8, type: 2}
+  processor: {fileID: 11400000, guid: c675275aa108fff43b69071c7ac5b26d, type: 2}
+  modifiers:
+  - {fileID: 11400000, guid: c8ea07ebb428de6448ece6e5f2129352, type: 2}
+  - {fileID: 11400000, guid: c145e3e80434a674fa0a133a22e6134c, type: 2}
+  - {fileID: 11400000, guid: cdbe847dab3336843bd01d8467ef7bd3, type: 2}

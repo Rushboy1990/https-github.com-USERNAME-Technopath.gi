@@ -54,6 +54,24 @@ namespace Technopath.Tests.EditMode
             Assert.That(stats.Attack, Is.EqualTo(2));
         }
 
+        [Test]
+        public void CoreOverridesPrimaryAbility_AndProcessorAddsUtilityAbility()
+        {
+            var archetype = CreateArchetype(ArchetypeRole.Attacker, 8, 1, 3);
+            Set(archetype, "abilityName", "Archetype Ability");
+            var core = CreateModule("core", ModuleSlotType.Core, 0, 0, 0);
+            Set(core, "abilityName", "Core Ability");
+            Set(core, "abilityRulesText", "Replacement rules");
+            var processor = CreateModule("cpu", ModuleSlotType.Processor, 0, 0, 0);
+            Set(processor, "abilityName", "Utility Ability");
+            var loadout = new RobotLoadout(archetype);
+            loadout.TryEquip(core);
+            loadout.TryEquip(processor);
+
+            Assert.That(loadout.GetPrimaryAbility().Name, Is.EqualTo("Core Ability"));
+            Assert.That(loadout.GetProcessorAbility().Name, Is.EqualTo("Utility Ability"));
+        }
+
         private static RobotArchetypeDefinition CreateArchetype(ArchetypeRole role, int health, int armor, int attack)
         {
             var definition = ScriptableObject.CreateInstance<RobotArchetypeDefinition>();

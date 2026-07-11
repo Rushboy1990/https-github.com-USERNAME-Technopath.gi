@@ -8,6 +8,7 @@ using Technopath.Combat.Round;
 using Technopath.Combat.Events;
 using Technopath.Combat.Archetypes;
 using Technopath.Combat.Statuses;
+using Technopath.Combat.Modules;
 using UnityEngine;
 
 namespace Technopath.Combat.Presentation
@@ -22,6 +23,8 @@ namespace Technopath.Combat.Presentation
         [SerializeField] private AttackTraceView attackTracePrefab;
         [SerializeField] private int formationSeed = 1701;
         [SerializeField] private RobotArchetypeDefinition[] testArchetypes = Array.Empty<RobotArchetypeDefinition>();
+        [SerializeField] private RobotLoadoutPresetDefinition[] testLoadoutPresets = Array.Empty<RobotLoadoutPresetDefinition>();
+        [SerializeField] private RobotInspectionPanel inspectionPanel;
 
         private readonly Dictionary<string, UnitTokenView> _unitViews = new();
         private readonly List<string> _combatLogEntries = new();
@@ -34,6 +37,7 @@ namespace Technopath.Combat.Presentation
         private readonly AbilityEffectResolver _abilityEffects = new();
         private readonly StatusCollection _statuses = new();
         private readonly Dictionary<string, RobotArchetypeDefinition> _unitArchetypes = new();
+        private readonly Dictionary<string, RobotLoadout> _unitLoadouts = new();
 
         public string SelectionDescription { get; private set; } = "None";
         public string BattleLog { get; private set; } = "Select a player unit, then an adjacent cell.";
@@ -67,6 +71,10 @@ namespace Technopath.Combat.Presentation
             ClearHighlights();
             _selectedSource = null;
             var state = _battlefield.GetGrid(cell.Side)[cell.Position];
+            if (state.Occupancy == CellOccupancyKind.Unit && TryCreateRobotInspection(state.OccupantId, out var inspection))
+                inspectionPanel.Pin(inspection);
+            else
+                inspectionPanel.ClearPinned();
             SelectionDescription = state.IsEmpty
                 ? $"{cell.Side} {cell.Position}: Empty"
                 : DescribeUnit(cell.Side, cell.Position, state.OccupantId);
@@ -81,6 +89,24 @@ namespace Technopath.Combat.Presentation
                 if (_turn.CanMove(cell.Position, neighbor))
                     GetCell(BoardSide.Player, neighbor).ShowValidNeighbor();
             }
+        }
+
+        public void Hover(GridCellView cell, Vector2 pointerPosition)
+        {
+            RobotInspectionData inspection = null;
+            if (cell != null)
+            {
+                var state = _battlefield.GetGrid(cell.Side)[cell.Position];
+                if (state.Occupancy == CellOccupancyKind.Unit)
+                    TryCreateRobotInspection(state.OccupantId, out inspection);
+            }
+            inspectionPanel.ShowHover(inspection, pointerPosition);
+        }
+
+        public void ClearInspection()
+        {
+            inspectionPanel.ShowHover(null, default);
+            inspectionPanel.ClearPinned();
         }
 
         public void FinishTurn()
@@ -147,8 +173,19 @@ namespace Technopath.Combat.Presentation
                 _unitArchetypes.Add(entry.Key, entry.Value);
                 _abilityEngine.Register(entry.Key, entry.Value);
             }
+            foreach (var entry in archetypes)
+            {
+                foreach (var preset in testLoadoutPresets)
+                {
+                    if (preset != null && preset.Archetype == entry.Value)
+                    {
+                        _unitLoadouts.Add(entry.Key, preset.BuildRuntimeLoadout());
+                        break;
+                    }
+                }
+            }
             _abilityEngine.BeginPhase();
-            _combat = new CombatRoundModel(_battlefield, profiles, formationSeed, archetypes);
+            _combat = new CombatRoundModel(_battlefield, profiles, formationSeed, archetypes, _unitLoadouts);
             _turn = _combat.PlayerTurn;
             SpawnGridUnits(_battlefield.Player);
             SpawnGridUnits(_battlefield.Enemy);
@@ -269,9 +306,71 @@ namespace Technopath.Combat.Presentation
         {
             var unit = _turn.GetUnit(unitId);
             var baseDescription = $"{side} {position}: {unitId}, HP {unit.Health}/{unit.MaxHealth}, ARM {unit.Armor}/{unit.MaxArmor}, ATK {unit.AttackDamage}";
+            if (_unitLoadouts.TryGetValue(unitId, out var loadout))
+            {
+                var stats = loadout.CalculateStats();
+                var primary = loadout.GetPrimaryAbility();
+                var utility = loadout.GetProcessorAbility();
+                baseDescription += $" • Build: Core={loadout.Core?.DisplayName ?? "Empty"}, CPU={loadout.Processor?.DisplayName ?? "Empty"}, Mods={string.Join(", ", FormatModifiers(loadout))} • Primary[{primary.Source}]: {primary.Name} — {primary.RulesText}";
+                if (utility != null) baseDescription += $" • Utility[{utility.Source}]: {utility.Name} — {utility.RulesText}";
+                baseDescription += $" • Sources: {string.Join("; ", stats.Sources)}";
+            }
             return _unitArchetypes.TryGetValue(unitId, out var archetype)
                 ? $"{baseDescription} • {archetype.DisplayName}: {archetype.AbilityName} — {archetype.AbilityRulesText}"
                 : baseDescription;
+        }
+
+        private static IEnumerable<string> FormatModifiers(RobotLoadout loadout)
+        {
+            foreach (var modifier in loadout.Modifiers)
+                yield return modifier?.DisplayName ?? "Empty";
+        }
+
+        private bool TryCreateRobotInspection(string unitId, out RobotInspectionData inspection)
+        {
+            inspection = null;
+            if (!_unitArchetypes.TryGetValue(unitId, out var archetype) || !_turn.TryGetUnit(unitId, out var unit))
+                return false;
+
+            _unitLoadouts.TryGetValue(unitId, out var loadout);
+            var primary = loadout?.GetPrimaryAbility();
+            var utility = loadout?.GetProcessorAbility();
+            var modules = new List<ModifierInspectionData>();
+            if (loadout != null)
+            {
+                modules.Add(CreateModuleInspection("Core", loadout.Core));
+                modules.Add(CreateModuleInspection("Processor", loadout.Processor));
+                var index = 1;
+                foreach (var modifier in loadout.Modifiers)
+                {
+                    var slotName = $"Modifier {index++}";
+                    modules.Add(CreateModuleInspection(slotName, modifier));
+                }
+            }
+            var statuses = new List<string>();
+            foreach (var status in _statuses.GetActive(unitId))
+                statuses.Add($"{status.Id}: {status.Charges} charge(s)");
+
+            var primaryText = primary != null
+                ? $"{primary.Name}: {primary.RulesText}"
+                : $"{archetype.AbilityName}: {archetype.AbilityRulesText}";
+            var utilityText = utility == null ? null : $"{utility.Name}: {utility.RulesText}";
+            inspection = new RobotInspectionData(unitId, unitId, archetype.DisplayName,
+                unit.Health, unit.MaxHealth, unit.Armor, unit.MaxArmor, unit.AttackDamage,
+                $"Deals {unit.AttackDamage} damage to the first target in its row after movement.",
+                primaryText, utilityText, modules, statuses);
+            return true;
+        }
+
+        private static ModifierInspectionData CreateModuleInspection(string slotName, RobotModuleDefinition module) =>
+            module == null
+                ? new ModifierInspectionData($"{slotName}: Empty", $"{slotName} slot is empty")
+                : new ModifierInspectionData($"{slotName}: {module.DisplayName}", FormatModuleTooltip(module));
+
+        private static string FormatModuleTooltip(RobotModuleDefinition module)
+        {
+            var stats = $"HP {module.HealthModifier:+#;-#;0}   ARM {module.ArmorModifier:+#;-#;0}   ATK {module.AttackModifier:+#;-#;0}";
+            return $"{module.DisplayName}\n{module.Rarity}, level {module.Level}\n{module.RulesText}\n{stats}";
         }
 
         private static string DescribeDamage(AutoAttackResult attack)
@@ -343,7 +442,7 @@ namespace Technopath.Combat.Presentation
         {
             if (playerCells.Length != 9 || enemyCells.Length != 9)
                 throw new InvalidOperationException("BattlefieldPresenter requires exactly nine cells for each side.");
-            if (unitPrefab == null || unitsRoot == null || attackTracePrefab == null)
+            if (unitPrefab == null || unitsRoot == null || attackTracePrefab == null || inspectionPanel == null)
                 throw new InvalidOperationException("BattlefieldPresenter prefab and units root references are required.");
             if (testArchetypes.Length < 3)
                 throw new InvalidOperationException("BattlefieldPresenter requires at least three test archetype definitions.");
