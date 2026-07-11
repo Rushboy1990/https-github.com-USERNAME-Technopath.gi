@@ -24,6 +24,7 @@ namespace Technopath.Combat.Presentation
         [SerializeField] private RobotArchetypeDefinition[] testArchetypes = Array.Empty<RobotArchetypeDefinition>();
 
         private readonly Dictionary<string, UnitTokenView> _unitViews = new();
+        private readonly List<string> _combatLogEntries = new();
         private BattlefieldModel _battlefield;
         private PlayerTurnModel _turn;
         private CombatRoundModel _combat;
@@ -32,10 +33,12 @@ namespace Technopath.Combat.Presentation
         private readonly ConditionalAbilityEngine _abilityEngine = new();
         private readonly AbilityEffectResolver _abilityEffects = new();
         private readonly StatusCollection _statuses = new();
+        private readonly Dictionary<string, RobotArchetypeDefinition> _unitArchetypes = new();
 
         public string SelectionDescription { get; private set; } = "None";
         public string BattleLog { get; private set; } = "Select a player unit, then an adjacent cell.";
         public string DetailedCombatLog { get; private set; } = "PhaseStarted";
+        public IReadOnlyList<string> CombatLogEntries => _combatLogEntries;
         public int ActionPoints => _turn?.ActionPoints ?? 0;
         public string PhaseDescription => _combat?.Phase.ToString() ?? "None";
         public int RoundNumber => _combat?.RoundNumber ?? 0;
@@ -46,6 +49,7 @@ namespace Technopath.Combat.Presentation
             InitializeCells(playerCells, BoardSide.Player);
             InitializeCells(enemyCells, BoardSide.Enemy);
             BuildCombat();
+            RecordLog("Combat started. Player phase begins.");
         }
 
         public void Select(GridCellView cell)
@@ -120,7 +124,7 @@ namespace Technopath.Combat.Presentation
                     Destroy(deadView.gameObject);
                 }
             }
-            BattleLog = log.ToString();
+            RecordLog(log.ToString());
             AppendDetailedEvents();
             SelectionDescription = "None";
             _selectedSource = null;
@@ -137,12 +141,11 @@ namespace Technopath.Combat.Presentation
                 new("mutant-2", 20, 2),
                 new("mutant-3", 30, 3)
             };
-            var archetypes = new Dictionary<string, RobotArchetypeDefinition>();
-            for (var index = 0; index < testArchetypes.Length && index < 3; index++)
+            var archetypes = BuildDistinctStartingArchetypes();
+            foreach (var entry in archetypes)
             {
-                var unitId = $"robot-{index + 1}";
-                archetypes.Add(unitId, testArchetypes[index]);
-                _abilityEngine.Register(unitId, testArchetypes[index]);
+                _unitArchetypes.Add(entry.Key, entry.Value);
+                _abilityEngine.Register(entry.Key, entry.Value);
             }
             _abilityEngine.BeginPhase();
             _combat = new CombatRoundModel(_battlefield, profiles, formationSeed, archetypes);
@@ -157,15 +160,15 @@ namespace Technopath.Combat.Presentation
             _isAnimating = true;
             foreach (var unit in _unitViews.Values) unit.HideIntent();
             _combat.FinishPlayerTurn();
-            BattleLog = "Mutants are executing their intents.";
+            RecordLog("Mutants are executing their intents.");
             var actions = _combat.ResolveMutantTurn(formationSeed + _combat.RoundNumber);
 
             foreach (var action in actions)
             {
                 ShowAttackFeedback(action.Attack);
-                BattleLog = action.Attack.HasTarget
+                RecordLog(action.Attack.HasTarget
                     ? DescribeDamage(action.Attack)
-                    : $"{action.MutantId} fired into empty row.";
+                    : $"{action.MutantId} fired into empty row.");
                 yield return new WaitForSeconds(0.38f);
 
                 if (action.Destination.HasValue && _unitViews.TryGetValue(action.MutantId, out var mutant))
@@ -183,10 +186,10 @@ namespace Technopath.Combat.Presentation
             {
                 _abilityEngine.BeginPhase();
                 ShowIntents();
-                BattleLog += $" Round {_combat.RoundNumber} started.";
+                RecordLog($"Round {_combat.RoundNumber} started. Player armor restored.");
             }
             else
-                BattleLog = _combat.Phase == CombatPhase.Victory ? "VICTORY: all required mutants destroyed." : "DEFEAT: Technopath destroyed.";
+                RecordLog(_combat.Phase == CombatPhase.Victory ? "VICTORY: all required mutants destroyed." : "DEFEAT: Technopath destroyed.");
             AppendDetailedEvents();
             _isAnimating = false;
         }
@@ -209,8 +212,37 @@ namespace Technopath.Combat.Presentation
                 var token = Instantiate(unitPrefab, GetCell(grid.Side, cell.Position).transform.position,
                     Quaternion.identity, unitsRoot);
                 token.Bind(cell.OccupantId, grid.Side, cell.OccupantId == StartingFormationFactory.TechnopathId);
+                if (grid.Side == BoardSide.Player && _unitArchetypes.TryGetValue(cell.OccupantId, out var archetype))
+                    token.ShowArchetype(archetype.DisplayName);
                 _unitViews.Add(cell.OccupantId, token);
             }
+        }
+
+        private Dictionary<string, RobotArchetypeDefinition> BuildDistinctStartingArchetypes()
+        {
+            var unique = new List<RobotArchetypeDefinition>();
+            var ids = new HashSet<string>();
+            foreach (var definition in testArchetypes)
+            {
+                if (definition != null && ids.Add(definition.Id))
+                    unique.Add(definition);
+            }
+            if (unique.Count < 3)
+                throw new InvalidOperationException("At least three different archetype definitions are required.");
+
+            var random = new System.Random(formationSeed);
+            for (var index = unique.Count - 1; index > 0; index--)
+            {
+                var swapIndex = random.Next(index + 1);
+                (unique[index], unique[swapIndex]) = (unique[swapIndex], unique[index]);
+            }
+
+            return new Dictionary<string, RobotArchetypeDefinition>
+            {
+                ["robot-1"] = unique[0],
+                ["robot-2"] = unique[1],
+                ["robot-3"] = unique[2]
+            };
         }
 
         private void ShowAttackFeedback(AutoAttackResult attack)
@@ -236,7 +268,10 @@ namespace Technopath.Combat.Presentation
         private string DescribeUnit(BoardSide side, GridPosition position, string unitId)
         {
             var unit = _turn.GetUnit(unitId);
-            return $"{side} {position}: {unitId}, HP {unit.Health}/{unit.MaxHealth}, ARM {unit.Armor}/{unit.MaxArmor}, ATK {unit.AttackDamage}";
+            var baseDescription = $"{side} {position}: {unitId}, HP {unit.Health}/{unit.MaxHealth}, ARM {unit.Armor}/{unit.MaxArmor}, ATK {unit.AttackDamage}";
+            return _unitArchetypes.TryGetValue(unitId, out var archetype)
+                ? $"{baseDescription} • {archetype.DisplayName}: {archetype.AbilityName} — {archetype.AbilityRulesText}"
+                : baseDescription;
         }
 
         private static string DescribeDamage(AutoAttackResult attack)
@@ -275,7 +310,18 @@ namespace Technopath.Combat.Presentation
                 }
             }
             if (builder.Length > 0)
+            {
                 DetailedCombatLog = builder.ToString();
+                RecordLog($"Events: {DetailedCombatLog}");
+            }
+        }
+
+        private void RecordLog(string message)
+        {
+            if (string.IsNullOrWhiteSpace(message)) return;
+            BattleLog = message.Trim();
+            _combatLogEntries.Add(BattleLog);
+            if (_combatLogEntries.Count > 200) _combatLogEntries.RemoveAt(0);
         }
 
         private GridCellView GetCell(BoardSide side, GridPosition position) =>
@@ -300,7 +346,7 @@ namespace Technopath.Combat.Presentation
             if (unitPrefab == null || unitsRoot == null || attackTracePrefab == null)
                 throw new InvalidOperationException("BattlefieldPresenter prefab and units root references are required.");
             if (testArchetypes.Length < 3)
-                throw new InvalidOperationException("BattlefieldPresenter requires three test archetype definitions.");
+                throw new InvalidOperationException("BattlefieldPresenter requires at least three test archetype definitions.");
         }
     }
 }

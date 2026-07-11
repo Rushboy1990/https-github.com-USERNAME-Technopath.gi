@@ -20,8 +20,8 @@ MonoBehaviour:
   maximumArmor: 1
   autoAttackDamage: 3
   abilityName: Target Lock
-  abilityRulesText: After this robot attacks, mark the target for 1 additional damage
-    from the next ally attack.
+  abilityRulesText: After this robot attacks, apply Target Lock. The next attack
+    consumes it for 1 additional damage.
   triggerMoment: 3
   eventScope: 0
   frequency: 2

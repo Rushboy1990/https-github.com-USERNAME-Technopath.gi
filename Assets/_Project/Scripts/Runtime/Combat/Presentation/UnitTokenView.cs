@@ -55,6 +55,12 @@ namespace Technopath.Combat.Presentation
                 intentLabel.text = string.Empty;
         }
 
+        public void ShowArchetype(string displayName)
+        {
+            if (label != null && !string.IsNullOrWhiteSpace(displayName))
+                label.text = displayName.Substring(0, 1).ToUpperInvariant();
+        }
+
         private void Reset()
         {
             body = GetComponent<SpriteRenderer>();

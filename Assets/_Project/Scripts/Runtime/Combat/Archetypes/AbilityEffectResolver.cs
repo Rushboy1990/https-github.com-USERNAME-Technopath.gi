@@ -14,7 +14,7 @@ namespace Technopath.Combat.Archetypes
             {
                 case ArchetypeRole.Attacker when !string.IsNullOrEmpty(sourceEvent.TargetId):
                     statuses.Add(sourceEvent.TargetId, "status.target-lock", 1,
-                        activation.EffectValue, StatusTickMoment.UnitMoved);
+                        activation.EffectValue, StatusTickMoment.NextAttack);
                     return true;
                 case ArchetypeRole.Defender when !string.IsNullOrEmpty(sourceEvent.TargetId):
                     if (!combatState.TryGetUnit(sourceEvent.TargetId, out var damaged) || damaged.Side != BoardSide.Player)

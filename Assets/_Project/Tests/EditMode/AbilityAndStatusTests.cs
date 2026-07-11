@@ -67,5 +67,20 @@ namespace Technopath.Tests.EditMode
             Assert.That(statuses.TryConsume("mutant", "status.target-lock", out value), Is.True);
             Assert.That(value, Is.EqualTo(2));
         }
+
+        [Test]
+        public void StatusCollection_TicksOnlyStatusesForRequestedMoment()
+        {
+            var statuses = new StatusCollection();
+            statuses.Add("mutant", "status.wound", 2, 2, StatusTickMoment.UnitMoved);
+            statuses.Add("mutant", "status.poison", 3, 1, StatusTickMoment.PhaseStarted);
+
+            var results = statuses.Tick("mutant", StatusTickMoment.UnitMoved);
+
+            Assert.That(results.Count, Is.EqualTo(1));
+            Assert.That(results[0].StatusId, Is.EqualTo("status.wound"));
+            Assert.That(results[0].Value, Is.EqualTo(4));
+            Assert.That(results[0].RemainingCharges, Is.EqualTo(1));
+        }
     }
 }

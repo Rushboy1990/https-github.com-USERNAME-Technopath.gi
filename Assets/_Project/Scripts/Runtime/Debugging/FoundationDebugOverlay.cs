@@ -16,13 +16,10 @@ namespace Technopath.Debugging
 
         private void OnGUI()
         {
-            if (gameConfig != null && !gameConfig.ShowDebugOverlay)
-                return;
-
+            if (gameConfig != null && !gameConfig.ShowDebugOverlay) return;
             EnsureStyles();
-
             const float width = 360f;
-            const float height = 246f;
+            const float height = 176f;
             var rect = new Rect(16f, 16f, width, height);
 
             GUI.Box(rect, GUIContent.none, _panelStyle);
@@ -32,21 +29,15 @@ namespace Technopath.Debugging
             GUILayout.Label($"Round: {(battlefieldPresenter != null ? battlefieldPresenter.RoundNumber : 0)} • Phase: {(battlefieldPresenter != null ? battlefieldPresenter.PhaseDescription : "None")}", _labelStyle);
             GUILayout.Label($"Selection: {(battlefieldPresenter != null ? battlefieldPresenter.SelectionDescription : "None")}", _labelStyle);
             GUILayout.Label($"Action Points: {(battlefieldPresenter != null ? battlefieldPresenter.ActionPoints : 0)}", _labelStyle);
-            GUILayout.Label($"Log: {(battlefieldPresenter != null ? battlefieldPresenter.BattleLog : "—")}", _labelStyle);
-            GUILayout.Label($"Events: {(battlefieldPresenter != null ? battlefieldPresenter.DetailedCombatLog : "—")}", _labelStyle);
-            if (battlefieldPresenter != null)
-            {
-                if (battlefieldPresenter.PhaseDescription == "PlayerTurn" && GUILayout.Button("Finish player phase"))
-                    battlefieldPresenter.FinishTurn();
-            }
+            if (battlefieldPresenter != null && battlefieldPresenter.PhaseDescription == "PlayerTurn" &&
+                GUILayout.Button("Finish player phase"))
+                battlefieldPresenter.FinishTurn();
             GUILayout.EndArea();
         }
 
         private void EnsureStyles()
         {
-            if (_panelStyle != null)
-                return;
-
+            if (_panelStyle != null) return;
             _panelStyle = new GUIStyle(GUI.skin.box);
             _labelStyle = new GUIStyle(GUI.skin.label)
             {
