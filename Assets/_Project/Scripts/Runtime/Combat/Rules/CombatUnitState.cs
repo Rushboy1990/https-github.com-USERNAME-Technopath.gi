@@ -39,5 +39,13 @@ namespace Technopath.Combat.Rules
         }
 
         public void RestoreArmor() => Armor = MaxArmor;
+
+        public int AddArmor(int amount)
+        {
+            if (amount < 0) throw new System.ArgumentOutOfRangeException(nameof(amount));
+            var previous = Armor;
+            Armor = System.Math.Min(MaxArmor, Armor + amount);
+            return Armor - previous;
+        }
     }
 }

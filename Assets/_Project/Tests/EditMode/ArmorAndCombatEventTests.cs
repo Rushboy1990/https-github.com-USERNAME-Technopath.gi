@@ -75,5 +75,15 @@ namespace Technopath.Tests.EditMode
             Assert.That(events[1].Kind, Is.EqualTo(CombatEventKind.Attack));
             Assert.That(events[2].Kind, Is.EqualTo(CombatEventKind.Damage));
         }
+
+        [Test]
+        public void AddArmor_IsCappedByMaximumArmor()
+        {
+            var unit = new CombatUnitState("robot", BoardSide.Player, 10, 2, maxArmor: 3);
+            unit.TakeDamage(2);
+
+            Assert.That(unit.AddArmor(10), Is.EqualTo(2));
+            Assert.That(unit.Armor, Is.EqualTo(3));
+        }
     }
 }

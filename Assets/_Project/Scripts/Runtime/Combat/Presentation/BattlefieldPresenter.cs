@@ -7,6 +7,7 @@ using Technopath.Combat.Rules;
 using Technopath.Combat.Round;
 using Technopath.Combat.Events;
 using Technopath.Combat.Archetypes;
+using Technopath.Combat.Statuses;
 using UnityEngine;
 
 namespace Technopath.Combat.Presentation
@@ -29,6 +30,8 @@ namespace Technopath.Combat.Presentation
         private GridCellView _selectedSource;
         private bool _isAnimating;
         private readonly ConditionalAbilityEngine _abilityEngine = new();
+        private readonly AbilityEffectResolver _abilityEffects = new();
+        private readonly StatusCollection _statuses = new();
 
         public string SelectionDescription { get; private set; } = "None";
         public string BattleLog { get; private set; } = "Select a player unit, then an adjacent cell.";
@@ -244,22 +247,35 @@ namespace Technopath.Combat.Presentation
 
         private void AppendDetailedEvents()
         {
-            var events = _turn.Events.Drain();
-            if (events.Count == 0)
-                return;
-
             var builder = new StringBuilder();
-            foreach (var combatEvent in events)
+            for (var cycle = 0; cycle < 8; cycle++)
             {
-                if (builder.Length > 0) builder.Append(" → ");
-                builder.Append(combatEvent.Kind);
-                if (!string.IsNullOrEmpty(combatEvent.SourceId)) builder.Append($"[{combatEvent.SourceId}]");
-                if (!string.IsNullOrEmpty(combatEvent.TargetId)) builder.Append($"({combatEvent.TargetId})");
-                if (combatEvent.Value != 0) builder.Append($":{combatEvent.Value}");
-                foreach (var activation in _abilityEngine.Evaluate(combatEvent))
-                    builder.Append($" → Ability[{activation.UnitId}:{activation.Definition.AbilityName}]={activation.EffectValue}");
+                var events = _turn.Events.Drain();
+                if (events.Count == 0) break;
+                foreach (var combatEvent in events)
+                {
+                    if (builder.Length > 0) builder.Append(" → ");
+                    builder.Append(combatEvent.Kind);
+                    if (!string.IsNullOrEmpty(combatEvent.SourceId)) builder.Append($"[{combatEvent.SourceId}]");
+                    if (!string.IsNullOrEmpty(combatEvent.TargetId)) builder.Append($"({combatEvent.TargetId})");
+                    if (combatEvent.Value != 0) builder.Append($":{combatEvent.Value}");
+
+                    if (combatEvent.Kind == CombatEventKind.Attack && !string.IsNullOrEmpty(combatEvent.TargetId) &&
+                        _statuses.TryConsume(combatEvent.TargetId, "status.target-lock", out var bonusDamage))
+                    {
+                        _turn.ApplyDamageDetailed(combatEvent.TargetId, bonusDamage);
+                        builder.Append($" → Status[target-lock]:HP/ARM -{bonusDamage}");
+                    }
+
+                    foreach (var activation in _abilityEngine.Evaluate(combatEvent))
+                    {
+                        if (_abilityEffects.Apply(activation, combatEvent, _turn, _statuses))
+                            builder.Append($" → Ability[{activation.UnitId}:{activation.Definition.AbilityName}]={activation.EffectValue}");
+                    }
+                }
             }
-            DetailedCombatLog = builder.ToString();
+            if (builder.Length > 0)
+                DetailedCombatLog = builder.ToString();
         }
 
         private GridCellView GetCell(BoardSide side, GridPosition position) =>

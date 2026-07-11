@@ -32,6 +32,8 @@ namespace Technopath.Combat.Rules
 
         public CombatUnitState GetUnit(string id) => _units[id];
         public bool IsAlive(string id) => _units.TryGetValue(id, out var unit) && unit.IsAlive;
+        public bool TryGetUnit(string id, out CombatUnitState unit) => _units.TryGetValue(id, out unit);
+        public int AddArmor(string unitId, int amount) => _units[unitId].AddArmor(amount);
 
         public bool ApplyDamage(string unitId, int damage)
         {
@@ -123,7 +125,6 @@ namespace Technopath.Combat.Rules
         private AutoAttackResult ResolveAutoAttack(string attackerId, int row)
         {
             var attacker = _units[attackerId];
-            Events.Enqueue(new CombatEvent(CombatEventKind.Attack, attackerId));
             for (var column = 0; column < GridPosition.Size; column++)
             {
                 var cell = _battlefield.Enemy[new GridPosition(row, column)];
@@ -131,10 +132,12 @@ namespace Technopath.Combat.Rules
                     continue;
 
                 var target = _units[cell.OccupantId];
+                Events.Enqueue(new CombatEvent(CombatEventKind.Attack, attackerId, target.Id, attacker.AttackDamage));
                 var damageResult = ApplyDamageDetailed(target.Id, attacker.AttackDamage);
                 return new AutoAttackResult(attackerId, target.Id, attacker.AttackDamage, row, damageResult);
             }
 
+            Events.Enqueue(new CombatEvent(CombatEventKind.Attack, attackerId));
             return new AutoAttackResult(attackerId, null, 0, row);
         }
 
