@@ -32,5 +32,10 @@ namespace Technopath.Run
             MaxHealth = Loadout.CalculateStats().Health;
             Health = Math.Min(Health, MaxHealth);
         }
+
+        public void SetHealthAfterBattle(int health)
+        {
+            Health = Math.Clamp(health, 0, MaxHealth);
+        }
     }
 }

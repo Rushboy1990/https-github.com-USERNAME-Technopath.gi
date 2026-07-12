@@ -5,13 +5,18 @@ namespace Technopath.Combat.Rules
     public sealed class CombatUnitState
     {
         public CombatUnitState(string id, BoardSide side, int health, int attackDamage, int maxArmor = 0)
+            : this(id, side, health, health, attackDamage, maxArmor)
         {
-            if (health <= 0) throw new System.ArgumentOutOfRangeException(nameof(health));
+        }
+
+        public CombatUnitState(string id, BoardSide side, int maximumHealth, int currentHealth, int attackDamage, int maxArmor = 0)
+        {
+            if (maximumHealth <= 0) throw new System.ArgumentOutOfRangeException(nameof(maximumHealth));
             if (maxArmor < 0) throw new System.ArgumentOutOfRangeException(nameof(maxArmor));
             Id = id;
             Side = side;
-            MaxHealth = health;
-            Health = health;
+            MaxHealth = maximumHealth;
+            Health = System.Math.Clamp(currentHealth, 0, maximumHealth);
             AttackDamage = attackDamage;
             MaxArmor = maxArmor;
             Armor = maxArmor;

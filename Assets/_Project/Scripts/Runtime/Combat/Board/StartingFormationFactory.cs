@@ -9,8 +9,15 @@ namespace Technopath.Combat.Board
 
         public static BattlefieldModel Create(int seed, int robotCount = 3)
         {
-            if (robotCount < 0 || robotCount > 8)
-                throw new ArgumentOutOfRangeException(nameof(robotCount));
+            var ids = new List<string>(robotCount);
+            for (var index = 0; index < robotCount; index++) ids.Add($"robot-{index + 1}");
+            return Create(seed, ids);
+        }
+
+        public static BattlefieldModel Create(int seed, IReadOnlyList<string> robotIds)
+        {
+            if (robotIds == null) throw new ArgumentNullException(nameof(robotIds));
+            if (robotIds.Count > 8) throw new ArgumentOutOfRangeException(nameof(robotIds));
 
             var battlefield = new BattlefieldModel();
             battlefield.Player.TryOccupy(GridPosition.Center, CellOccupancyKind.Unit, TechnopathId);
@@ -25,10 +32,10 @@ namespace Technopath.Combat.Board
             }
 
             var random = new Random(seed);
-            for (var index = 0; index < robotCount; index++)
+            for (var index = 0; index < robotIds.Count; index++)
             {
                 var choice = random.Next(available.Count);
-                battlefield.Player.TryOccupy(available[choice], CellOccupancyKind.Unit, $"robot-{index + 1}");
+                battlefield.Player.TryOccupy(available[choice], CellOccupancyKind.Unit, robotIds[index]);
                 available.RemoveAt(choice);
             }
 

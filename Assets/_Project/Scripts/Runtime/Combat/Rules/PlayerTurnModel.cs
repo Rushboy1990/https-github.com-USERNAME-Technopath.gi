@@ -25,14 +25,15 @@ namespace Technopath.Combat.Rules
 
         public PlayerTurnModel(BattlefieldModel battlefield, int actionPoints,
             IReadOnlyDictionary<string, RobotArchetypeDefinition> archetypes,
-            IReadOnlyDictionary<string, RobotLoadout> loadouts)
+            IReadOnlyDictionary<string, RobotLoadout> loadouts,
+            IReadOnlyDictionary<string, int> initialHealth = null)
         {
             _battlefield = battlefield ?? throw new ArgumentNullException(nameof(battlefield));
             _archetypes = archetypes;
             _loadouts = loadouts;
             ActionPoints = actionPoints;
-            RegisterUnits(battlefield.Player, 10, 2);
-            RegisterUnits(battlefield.Enemy, 6, 1);
+            RegisterUnits(battlefield.Player, 10, 2, initialHealth);
+            RegisterUnits(battlefield.Enemy, 6, 1, null);
             Events.Enqueue(new CombatEvent(CombatEventKind.PhaseStarted));
         }
 
@@ -151,7 +152,7 @@ namespace Technopath.Combat.Rules
             return new AutoAttackResult(attackerId, null, 0, row);
         }
 
-        private void RegisterUnits(BattleGridModel grid, int health, int damage)
+        private void RegisterUnits(BattleGridModel grid, int health, int damage, IReadOnlyDictionary<string, int> initialHealth)
         {
             foreach (var cell in grid.Cells)
             {
@@ -161,20 +162,27 @@ namespace Technopath.Combat.Rules
                     {
                         var stats = loadout.CalculateStats();
                         _units.Add(cell.OccupantId, new CombatUnitState(cell.OccupantId, grid.Side,
-                            stats.Health, stats.Attack, stats.Armor));
+                            stats.Health, GetInitialHealth(cell.OccupantId, stats.Health, initialHealth), stats.Attack, stats.Armor));
                         continue;
                     }
                     if (_archetypes != null && _archetypes.TryGetValue(cell.OccupantId, out var archetype))
                     {
                         _units.Add(cell.OccupantId, new CombatUnitState(cell.OccupantId, grid.Side,
-                            archetype.MaximumHealth, archetype.AutoAttackDamage, archetype.MaximumArmor));
+                            archetype.MaximumHealth, GetInitialHealth(cell.OccupantId, archetype.MaximumHealth, initialHealth),
+                            archetype.AutoAttackDamage, archetype.MaximumArmor));
                         continue;
                     }
                     var armor = grid.Side == BoardSide.Player ? 3 : 2;
-                    _units.Add(cell.OccupantId, new CombatUnitState(cell.OccupantId, grid.Side, health, damage, armor));
+                    _units.Add(cell.OccupantId, new CombatUnitState(cell.OccupantId, grid.Side, health,
+                        GetInitialHealth(cell.OccupantId, health, initialHealth), damage, armor));
                 }
             }
         }
+
+        private static int GetInitialHealth(string id, int maximumHealth, IReadOnlyDictionary<string, int> initialHealth) =>
+            initialHealth != null && initialHealth.TryGetValue(id, out var value)
+                ? Math.Clamp(value, 0, maximumHealth)
+                : maximumHealth;
 
         private static int ManhattanDistance(GridPosition first, GridPosition second) =>
             Math.Abs(first.Row - second.Row) + Math.Abs(first.Column - second.Column);

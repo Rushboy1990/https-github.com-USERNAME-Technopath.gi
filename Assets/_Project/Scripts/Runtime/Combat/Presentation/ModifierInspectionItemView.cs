@@ -13,7 +13,10 @@ namespace Technopath.Combat.Presentation
 
         public void Bind(ModifierInspectionData data, RobotInspectionPanel owner)
         {
-            label.text = data.Name;
+            var separator = data.Name.IndexOf(':');
+            label.text = separator > 0
+                ? $"{data.Name[..separator].ToUpperInvariant()}\n{data.Name[(separator + 1)..].Trim()}"
+                : data.Name;
             _tooltip = data.Tooltip;
             _owner = owner;
         }

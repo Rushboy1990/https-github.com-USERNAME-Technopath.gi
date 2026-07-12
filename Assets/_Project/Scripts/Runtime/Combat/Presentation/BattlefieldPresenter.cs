@@ -48,21 +48,26 @@ namespace Technopath.Combat.Presentation
         private readonly StatusCollection _statuses = new();
         private readonly Dictionary<string, RobotArchetypeDefinition> _unitArchetypes = new();
         private readonly Dictionary<string, RobotLoadout> _unitLoadouts = new();
-        private readonly RunState _runState = new();
+        private RunFlowController _runFlow;
+        private RunState _runState;
         private readonly BattleRewardGenerator _rewardGenerator = new();
         private bool _victoryRewardGranted;
+        private bool _isPresentingEnemyTurn;
 
         public string SelectionDescription { get; private set; } = "None";
         public string BattleLog { get; private set; } = "Select a player unit, then an adjacent cell.";
         public string DetailedCombatLog { get; private set; } = "PhaseStarted";
         public IReadOnlyList<string> CombatLogEntries => _combatLogEntries;
         public int ActionPoints => _turn?.ActionPoints ?? 0;
-        public string PhaseDescription => _combat?.Phase.ToString() ?? "None";
+        public string PhaseDescription => _isPresentingEnemyTurn
+            ? CombatPhase.MutantTurn.ToString()
+            : _combat?.Phase.ToString() ?? "None";
         public int RoundNumber => _combat?.RoundNumber ?? 0;
 
         private void Awake()
         {
             ValidateReferences();
+            EnsureRunSession();
             InitializeCells(playerCells, BoardSide.Player);
             InitializeCells(enemyCells, BoardSide.Enemy);
             BuildCombat();
@@ -192,41 +197,47 @@ namespace Technopath.Combat.Presentation
 
         private void BuildCombat()
         {
-            _battlefield = StartingFormationFactory.Create(formationSeed);
+            var encounter = _runState.CurrentEncounter;
+            var battleSeed = formationSeed + encounter.Seed;
+            var robotIds = new List<string>();
+            foreach (var robot in _runState.Robots) robotIds.Add(robot.Id);
+            _battlefield = StartingFormationFactory.Create(battleSeed, robotIds);
+            var mutantDamageBonus = encounter.Kind == RunEncounterKind.Boss ? 2 : encounter.Kind == RunEncounterKind.Elite ? 1 : 0;
             var profiles = new List<MutantProfile>
             {
-                new("mutant-1", 10, 1),
-                new("mutant-2", 20, 2),
-                new("mutant-3", 30, 3)
+                new("mutant-1", 10, 1 + mutantDamageBonus),
+                new("mutant-2", 20, 2 + mutantDamageBonus),
+                new("mutant-3", 30, 3 + mutantDamageBonus)
             };
-            var archetypes = BuildDistinctStartingArchetypes();
+            var archetypes = new Dictionary<string, RobotArchetypeDefinition>();
+            var initialHealth = new Dictionary<string, int>
+            {
+                [StartingFormationFactory.TechnopathId] = _runState.TechnopathHealth
+            };
+            foreach (var robot in _runState.Robots)
+            {
+                archetypes.Add(robot.Id, robot.Loadout.Archetype);
+                _unitLoadouts.Add(robot.Id, robot.Loadout);
+                initialHealth.Add(robot.Id, robot.Health);
+            }
             foreach (var entry in archetypes)
             {
                 _unitArchetypes.Add(entry.Key, entry.Value);
                 _abilityEngine.Register(entry.Key, entry.Value);
             }
-            foreach (var entry in archetypes)
-            {
-                foreach (var preset in testLoadoutPresets)
-                {
-                    if (preset != null && preset.Archetype == entry.Value)
-                    {
-                        _unitLoadouts.Add(entry.Key, preset.BuildRuntimeLoadout());
-                        break;
-                    }
-                }
-            }
             _abilityEngine.BeginPhase();
-            _combat = new CombatRoundModel(_battlefield, profiles, formationSeed, archetypes, _unitLoadouts);
+            _combat = new CombatRoundModel(_battlefield, profiles, battleSeed, archetypes, _unitLoadouts, initialHealth);
             _turn = _combat.PlayerTurn;
             SpawnGridUnits(_battlefield.Player);
             SpawnGridUnits(_battlefield.Enemy);
             ShowIntents();
+            RecordLog($"Encounter: {encounter.DisplayName}. Difficulty {encounter.Difficulty}.");
         }
 
         private IEnumerator PerformMutantTurn()
         {
             _isAnimating = true;
+            _isPresentingEnemyTurn = true;
             foreach (var unit in _unitViews.Values) unit.HideIntent();
             _combat.FinishPlayerTurn();
             RecordLog("Mutants are executing their intents.");
@@ -251,6 +262,8 @@ namespace Technopath.Combat.Presentation
                 }
             }
 
+            _isPresentingEnemyTurn = false;
+
             if (_combat.Phase == CombatPhase.PlayerTurn)
             {
                 _abilityEngine.BeginPhase();
@@ -265,6 +278,11 @@ namespace Technopath.Combat.Presentation
                     ShowVictoryReward();
                 }
                 else RecordLog("DEFEAT: Technopath destroyed.");
+                if (_combat.Phase == CombatPhase.Defeat)
+                {
+                    _runFlow.Defeat();
+                    victoryRewardPanel.ShowRunResult(false, _runState, RestartRun);
+                }
             }
             AppendDetailedEvents();
             _isAnimating = false;
@@ -468,12 +486,15 @@ namespace Technopath.Combat.Presentation
             _victoryRewardGranted = true;
             inspectionPanel.ClearPinned();
             CaptureSurvivingRobotsForCamp();
-            var reward = _rewardGenerator.Grant(_runState, rewardModulePool, rewardModuleCount, rewardParts,
+            _runFlow.CompleteBattle();
+            var encounter = _runState.CurrentEncounter;
+            var reward = _rewardGenerator.Grant(_runState, rewardModulePool,
+                encounter.RewardModuleCount, encounter.RewardParts,
                 formationSeed + _combat.RoundNumber * 101);
-            victoryRewardPanel.Show(reward, () =>
-            {
-                StartCoroutine(OpenRestStopScene());
-            });
+            Action continueAction = encounter.IsBoss
+                ? () => victoryRewardPanel.ShowRunResult(true, _runState, RestartRun)
+                : () => StartCoroutine(OpenRestStopScene());
+            victoryRewardPanel.Show(reward, continueAction);
         }
 
         private IEnumerator OpenRestStopScene()
@@ -490,18 +511,50 @@ namespace Technopath.Combat.Presentation
                 if (controller != null) break;
             }
             if (controller == null) throw new InvalidOperationException("Rest Stop scene requires RestStopController.");
-            controller.Initialize(_runState, testArchetypes, () => Debug.Log("Route screen is the next implementation step."));
+            _runFlow.EnterRestStop();
+            controller.Initialize(_runState, testArchetypes);
             SceneManager.SetActiveScene(restScene);
             yield return SceneManager.UnloadSceneAsync(combatScene);
         }
 
         private void CaptureSurvivingRobotsForCamp()
         {
+            var survivors = new List<CampRobotState>();
             foreach (var entry in _unitLoadouts)
             {
                 if (_turn.TryGetUnit(entry.Key, out var unit) && unit.IsAlive)
-                    _runState.AddRobot(new CampRobotState(entry.Key, entry.Value, unit.Health));
+                    survivors.Add(new CampRobotState(entry.Key, entry.Value, unit.Health));
             }
+            _runState.ReplaceRobots(survivors);
+            if (_turn.TryGetUnit(StartingFormationFactory.TechnopathId, out var technopath))
+                _runState.SetTechnopathHealth(technopath.Health, technopath.MaxHealth);
+        }
+
+        private void EnsureRunSession()
+        {
+            _runFlow = RunSession.IsActive ? RunSession.Flow : RunSession.StartNew(formationSeed);
+            _runState = _runFlow.State;
+            if (_runState.Robots.Count > 0) return;
+
+            var archetypes = BuildDistinctStartingArchetypes();
+            foreach (var entry in archetypes)
+            {
+                RobotLoadout loadout = null;
+                foreach (var preset in testLoadoutPresets)
+                    if (preset != null && preset.Archetype == entry.Value)
+                    {
+                        loadout = preset.BuildRuntimeLoadout();
+                        break;
+                    }
+                loadout ??= new RobotLoadout(entry.Value);
+                _runState.AddRobot(new CampRobotState(entry.Key, loadout, loadout.CalculateStats().Health));
+            }
+        }
+
+        private void RestartRun()
+        {
+            RunSession.Reset();
+            SceneManager.LoadScene(gameObject.scene.path, LoadSceneMode.Single);
         }
 
         private GridCellView GetCell(BoardSide side, GridPosition position) =>

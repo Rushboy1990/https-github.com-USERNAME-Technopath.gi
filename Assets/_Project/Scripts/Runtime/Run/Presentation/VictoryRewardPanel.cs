@@ -9,6 +9,8 @@ namespace Technopath.Run.Presentation
     {
         private BattleRewardResult _reward;
         private Action _continueAction;
+        private RunState _resultRun;
+        private bool _runWon;
         private Texture2D _background;
         private GUIStyle _panel;
         private GUIStyle _title;
@@ -17,17 +19,32 @@ namespace Technopath.Run.Presentation
         public void Show(BattleRewardResult reward, Action continueAction)
         {
             _reward = reward ?? throw new ArgumentNullException(nameof(reward));
+            _resultRun = null;
             _continueAction = continueAction;
+        }
+
+        public void ShowRunResult(bool victory, RunState run, Action restartAction)
+        {
+            _reward = null;
+            _runWon = victory;
+            _resultRun = run ?? throw new ArgumentNullException(nameof(run));
+            _continueAction = restartAction;
         }
 
         private void OnGUI()
         {
-            if (_reward == null) return;
+            if (_reward == null && _resultRun == null) return;
             EnsureStyles();
             GUI.Box(new Rect(0, 0, Screen.width, Screen.height), GUIContent.none, _panel);
             const float width = 560f;
             const float height = 480f;
             GUILayout.BeginArea(new Rect((Screen.width - width) * 0.5f, (Screen.height - height) * 0.5f, width, height), GUIContent.none, _panel);
+            if (_resultRun != null)
+            {
+                DrawRunResult();
+                GUILayout.EndArea();
+                return;
+            }
             GUILayout.Label("VICTORY", _title);
             GUILayout.Label("The mutant group has been destroyed. Salvage secured:", _text);
             GUILayout.Space(18f);
@@ -50,6 +67,28 @@ namespace Technopath.Run.Presentation
                 action?.Invoke();
             }
             GUILayout.EndArea();
+        }
+
+        private void DrawRunResult()
+        {
+            GUILayout.Label(_runWon ? "RUN COMPLETE" : "RUN FAILED", _title);
+            GUILayout.Space(18f);
+            GUILayout.Label(_runWon
+                ? "The test Hive Guardian has been destroyed."
+                : "The Technopath was destroyed. The expedition is over.", _text);
+            GUILayout.Space(16f);
+            GUILayout.Label($"Battles completed: {_resultRun.CompletedBattles}", _title);
+            GUILayout.Label($"Surviving robots: {_resultRun.Robots.Count}", _text);
+            GUILayout.Label($"Parts collected: {_resultRun.Parts}", _text);
+            GUILayout.Label($"Modules in inventory: {_resultRun.ModuleInventory.Count}", _text);
+            GUILayout.FlexibleSpace();
+            if (GUILayout.Button("START NEW TEST RUN", GUILayout.Height(42f)))
+            {
+                _resultRun = null;
+                var action = _continueAction;
+                _continueAction = null;
+                action?.Invoke();
+            }
         }
 
         private void EnsureStyles()

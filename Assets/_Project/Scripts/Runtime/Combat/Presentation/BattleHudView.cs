@@ -12,6 +12,9 @@ namespace Technopath.Combat.Presentation
         [SerializeField] private Text roundPhaseText;
         [SerializeField] private Text actionPointsText;
         [SerializeField] private Button finishTurnButton;
+        [SerializeField] private Color playerTurnColor = new(0.35f, 0.9f, 0.95f, 1f);
+        [SerializeField] private Color enemyTurnColor = new(0.95f, 0.56f, 0.58f, 1f);
+        [SerializeField] private Color neutralPhaseColor = Color.white;
 
         private void Awake()
         {
@@ -25,6 +28,7 @@ namespace Technopath.Combat.Presentation
         {
             if (_presenter == null) return;
             roundPhaseText.text = $"ROUND {_presenter.RoundNumber}   {FormatPhase(_presenter.PhaseDescription)}";
+            roundPhaseText.color = GetPhaseColor(_presenter.PhaseDescription);
             actionPointsText.text = FormatActionPoints(_presenter.ActionPoints);
             finishTurnButton.interactable = _presenter.PhaseDescription == "PlayerTurn";
         }
@@ -32,8 +36,15 @@ namespace Technopath.Combat.Presentation
         private static string FormatPhase(string phase) => phase switch
         {
             "PlayerTurn" => "PLAYER TURN",
-            "MutantTurn" => "MUTANT TURN",
+            "MutantTurn" => "ENEMY TURN",
             _ => phase.ToUpperInvariant()
+        };
+
+        private Color GetPhaseColor(string phase) => phase switch
+        {
+            "PlayerTurn" => playerTurnColor,
+            "MutantTurn" => enemyTurnColor,
+            _ => neutralPhaseColor
         };
 
         private static string FormatActionPoints(int current)

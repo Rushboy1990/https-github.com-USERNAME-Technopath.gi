@@ -11,8 +11,49 @@ namespace Technopath.Run
         private readonly List<CampRobotState> _robots = new();
 
         public int Parts { get; private set; }
+        public int TechnopathHealth { get; private set; } = 10;
+        public int TechnopathMaximumHealth { get; private set; } = 10;
+        public int CompletedBattles { get; private set; }
+        public RunPhase Phase { get; private set; } = RunPhase.Combat;
+        public RunEncounter CurrentEncounter { get; private set; }
         public IReadOnlyList<RobotModuleDefinition> ModuleInventory => _moduleInventory;
         public IReadOnlyList<CampRobotState> Robots => _robots;
+
+        public void BeginEncounter(RunEncounter encounter)
+        {
+            CurrentEncounter = encounter ?? throw new ArgumentNullException(nameof(encounter));
+            Phase = RunPhase.Combat;
+        }
+
+        public void CompleteCurrentEncounter()
+        {
+            if (CurrentEncounter == null) throw new InvalidOperationException("There is no active encounter.");
+            CompletedBattles++;
+        }
+
+        public void SetPhase(RunPhase phase) => Phase = phase;
+
+        public void SetTechnopathHealth(int health, int maximumHealth)
+        {
+            TechnopathMaximumHealth = Math.Max(1, maximumHealth);
+            TechnopathHealth = Math.Clamp(health, 0, TechnopathMaximumHealth);
+        }
+
+        public int RestoreTechnopathPercent(int percent)
+        {
+            var previous = TechnopathHealth;
+            var amount = Math.Max(0, TechnopathMaximumHealth * Math.Max(0, percent) / 100);
+            TechnopathHealth = Math.Min(TechnopathMaximumHealth, TechnopathHealth + amount);
+            return TechnopathHealth - previous;
+        }
+
+        public void ReplaceRobots(IEnumerable<CampRobotState> robots)
+        {
+            if (robots == null) throw new ArgumentNullException(nameof(robots));
+            _robots.Clear();
+            foreach (var robot in robots)
+                AddRobot(robot);
+        }
 
         public void AddParts(int amount)
         {

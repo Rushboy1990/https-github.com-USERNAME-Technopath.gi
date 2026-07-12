@@ -22,11 +22,12 @@ namespace Technopath.Combat.Round
 
         public CombatRoundModel(BattlefieldModel battlefield, IReadOnlyList<MutantProfile> profiles, int seed,
             IReadOnlyDictionary<string, RobotArchetypeDefinition> archetypes,
-            IReadOnlyDictionary<string, RobotLoadout> loadouts)
+            IReadOnlyDictionary<string, RobotLoadout> loadouts,
+            IReadOnlyDictionary<string, int> initialHealth = null)
         {
             Battlefield = battlefield;
             _profiles = profiles;
-            PlayerTurn = new PlayerTurnModel(battlefield, PlayerTurnModel.StartingActionPoints, archetypes, loadouts);
+            PlayerTurn = new PlayerTurnModel(battlefield, PlayerTurnModel.StartingActionPoints, archetypes, loadouts, initialHealth);
             Phase = CombatPhase.PreparingIntents;
             PrepareIntents(seed);
             Phase = CombatPhase.PlayerTurn;

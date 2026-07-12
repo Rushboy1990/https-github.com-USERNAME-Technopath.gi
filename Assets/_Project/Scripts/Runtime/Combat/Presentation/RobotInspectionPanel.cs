@@ -21,8 +21,13 @@ namespace Technopath.Combat.Presentation
         [Header("Pinned details card")]
         [SerializeField] private RectTransform detailsPanel;
         [SerializeField] private Text detailsTitle;
-        [SerializeField] private Text detailsStats;
+        [SerializeField] private Text detailsHealthText;
+        [SerializeField] private Image detailsHealthFill;
+        [SerializeField] private Text detailsArmorText;
+        [SerializeField] private Image detailsArmorFill;
+        [SerializeField] private Text detailsDamageText;
         [SerializeField] private Text detailsAutoAttack;
+        [SerializeField] private Text detailsAbilityTitle;
         [SerializeField] private Text detailsPrimaryAbility;
         [SerializeField] private Text detailsUtilityAbility;
         [SerializeField] private Text statusesText;
@@ -63,7 +68,20 @@ namespace Technopath.Combat.Presentation
             detailsPanel.gameObject.SetActive(data != null);
             if (data == null) return;
 
-            FillShared(data, detailsTitle, detailsStats, detailsAutoAttack, detailsPrimaryAbility);
+            detailsTitle.text = $"{data.Name} — {data.Archetype}";
+            detailsHealthText.text = $"HP   {data.Health}/{data.MaximumHealth}";
+            detailsHealthFill.fillAmount = data.MaximumHealth > 0
+                ? Mathf.Clamp01((float)data.Health / data.MaximumHealth)
+                : 0f;
+            detailsArmorText.text = $"ARMOR   {data.Armor}/{data.MaximumArmor}";
+            detailsArmorFill.fillAmount = data.MaximumArmor > 0
+                ? Mathf.Clamp01((float)data.Armor / data.MaximumArmor)
+                : 0f;
+            detailsDamageText.text = $"AUTOATTACK   {data.Attack}";
+            detailsAutoAttack.text = data.AutoAttack;
+            SplitAbility(data.PrimaryAbility, out var abilityTitle, out var abilityDescription);
+            detailsAbilityTitle.text = abilityTitle;
+            detailsPrimaryAbility.text = abilityDescription;
             detailsUtilityAbility.text = string.IsNullOrWhiteSpace(data.UtilityAbility) ? "None" : data.UtilityAbility;
             statusesText.text = BuildStatuses(data);
             RebuildModules(data);
@@ -126,6 +144,27 @@ namespace Technopath.Combat.Presentation
             return builder.ToString();
         }
 
+        private static void SplitAbility(string ability, out string title, out string description)
+        {
+            if (string.IsNullOrWhiteSpace(ability))
+            {
+                title = "NO PRIMARY ABILITY";
+                description = "None";
+                return;
+            }
+
+            var separator = ability.IndexOf(':');
+            if (separator <= 0)
+            {
+                title = "PRIMARY ABILITY";
+                description = ability;
+                return;
+            }
+
+            title = ability[..separator].Trim().ToUpperInvariant();
+            description = ability[(separator + 1)..].Trim();
+        }
+
         private static Vector2 ClampToScreen(Vector2 position, RectTransform panel)
         {
             var width = panel.rect.width;
@@ -145,8 +184,9 @@ namespace Technopath.Combat.Presentation
         {
             if (hoverPanel == null || hoverTitle == null || hoverHealthText == null || hoverHealthFill == null ||
                 hoverArmorText == null || hoverArmorFill == null || hoverDamageText == null || hoverAbilityText == null ||
-                detailsPanel == null || detailsTitle == null || detailsStats == null ||
-                detailsAutoAttack == null || detailsPrimaryAbility == null || detailsUtilityAbility == null ||
+                detailsPanel == null || detailsTitle == null || detailsHealthText == null || detailsHealthFill == null ||
+                detailsArmorText == null || detailsArmorFill == null || detailsDamageText == null ||
+                detailsAutoAttack == null || detailsAbilityTitle == null || detailsPrimaryAbility == null || detailsUtilityAbility == null ||
                 statusesText == null || modulesRoot == null || moduleItemPrefab == null || closeButton == null ||
                 tooltipPanel == null || tooltipText == null)
                 throw new InvalidOperationException("RobotInspectionPanel requires all uGUI and prefab references.");
