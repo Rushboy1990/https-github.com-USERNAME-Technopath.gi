@@ -29,6 +29,9 @@ namespace Technopath.Debugging
             GUILayout.BeginHorizontal();
             GUILayout.Label($"COMBAT LOG ({battlefieldPresenter?.CombatLogEntries.Count ?? 0})", _entryStyle);
             GUILayout.FlexibleSpace();
+            GUI.enabled = battlefieldPresenter != null && battlefieldPresenter.PhaseDescription != "Victory" && battlefieldPresenter.PhaseDescription != "Defeat";
+            if (GUILayout.Button("Win battle", GUILayout.Width(110f))) battlefieldPresenter.DebugWinBattle();
+            GUI.enabled = true;
             if (GUILayout.Button(expanded ? "Collapse ▼" : "Expand ▲", GUILayout.Width(110f))) expanded = !expanded;
             GUILayout.EndHorizontal();
 

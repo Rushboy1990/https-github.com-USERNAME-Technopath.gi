@@ -60,6 +60,17 @@ namespace Technopath.Combat.Modules
             }
         }
 
+        public RobotModuleDefinition Get(ModuleSlotType slotType, int modifierIndex = 0)
+        {
+            return slotType switch
+            {
+                ModuleSlotType.Core => Core,
+                ModuleSlotType.Processor => Processor,
+                ModuleSlotType.Modifier when modifierIndex >= 0 && modifierIndex < _modifiers.Length => _modifiers[modifierIndex],
+                _ => null
+            };
+        }
+
         public RobotStatSummary CalculateStats()
         {
             var health = Archetype.MaximumHealth;

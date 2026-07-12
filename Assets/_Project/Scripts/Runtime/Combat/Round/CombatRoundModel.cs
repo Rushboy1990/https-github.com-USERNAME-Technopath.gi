@@ -67,6 +67,15 @@ namespace Technopath.Combat.Round
             return results;
         }
 
+        public void DebugForceVictory()
+        {
+            if (Phase == CombatPhase.Victory || Phase == CombatPhase.Defeat) return;
+            foreach (var cell in Battlefield.Enemy.Cells.ToArray())
+                if (cell.Occupancy == CellOccupancyKind.Unit)
+                    Battlefield.Enemy.RemoveUnit(cell.OccupantId);
+            Phase = CombatPhase.Victory;
+        }
+
         private void PrepareIntents(int seed)
         {
             Phase = CombatPhase.PreparingIntents;

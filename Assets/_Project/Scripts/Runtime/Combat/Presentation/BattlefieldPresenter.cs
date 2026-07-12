@@ -10,6 +10,10 @@ using Technopath.Combat.Archetypes;
 using Technopath.Combat.Statuses;
 using Technopath.Combat.Modules;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using Technopath.Run;
+using Technopath.Run.Rewards;
+using Technopath.Run.Presentation;
 
 namespace Technopath.Combat.Presentation
 {
@@ -25,6 +29,12 @@ namespace Technopath.Combat.Presentation
         [SerializeField] private RobotArchetypeDefinition[] testArchetypes = Array.Empty<RobotArchetypeDefinition>();
         [SerializeField] private RobotLoadoutPresetDefinition[] testLoadoutPresets = Array.Empty<RobotLoadoutPresetDefinition>();
         [SerializeField] private RobotInspectionPanel inspectionPanel;
+        [Header("Victory reward prototype")]
+        [SerializeField] private VictoryRewardPanel victoryRewardPanel;
+        [SerializeField] private string restStopScenePath = "Assets/_Project/Scenes/RestStop.unity";
+        [SerializeField] private RobotModuleDefinition[] rewardModulePool = Array.Empty<RobotModuleDefinition>();
+        [SerializeField, Min(0)] private int rewardModuleCount = 3;
+        [SerializeField, Min(0)] private int rewardParts = 4;
 
         private readonly Dictionary<string, UnitTokenView> _unitViews = new();
         private readonly List<string> _combatLogEntries = new();
@@ -38,6 +48,9 @@ namespace Technopath.Combat.Presentation
         private readonly StatusCollection _statuses = new();
         private readonly Dictionary<string, RobotArchetypeDefinition> _unitArchetypes = new();
         private readonly Dictionary<string, RobotLoadout> _unitLoadouts = new();
+        private readonly RunState _runState = new();
+        private readonly BattleRewardGenerator _rewardGenerator = new();
+        private bool _victoryRewardGranted;
 
         public string SelectionDescription { get; private set; } = "None";
         public string BattleLog { get; private set; } = "Select a player unit, then an adjacent cell.";
@@ -116,6 +129,25 @@ namespace Technopath.Combat.Presentation
             _selectedSource = null;
             ClearHighlights();
             StartCoroutine(PerformMutantTurn());
+        }
+
+        public void DebugWinBattle()
+        {
+            if (_combat == null || _isAnimating || _combat.Phase == CombatPhase.Victory || _combat.Phase == CombatPhase.Defeat)
+                return;
+            _combat.DebugForceVictory();
+            foreach (var entry in new List<KeyValuePair<string, UnitTokenView>>(_unitViews))
+            {
+                if (_turn.TryGetUnit(entry.Key, out var unit) && unit.Side == BoardSide.Enemy)
+                {
+                    _unitViews.Remove(entry.Key);
+                    Destroy(entry.Value.gameObject);
+                }
+            }
+            _selectedSource = null;
+            ClearHighlights();
+            RecordLog("DEBUG VICTORY: battle completed by Win battle button.");
+            ShowVictoryReward();
         }
 
         private IEnumerator PerformMove(GridCellView source, GridCellView destination)
@@ -226,7 +258,14 @@ namespace Technopath.Combat.Presentation
                 RecordLog($"Round {_combat.RoundNumber} started. Player armor restored.");
             }
             else
-                RecordLog(_combat.Phase == CombatPhase.Victory ? "VICTORY: all required mutants destroyed." : "DEFEAT: Technopath destroyed.");
+            {
+                if (_combat.Phase == CombatPhase.Victory)
+                {
+                    RecordLog("VICTORY: all required mutants destroyed.");
+                    ShowVictoryReward();
+                }
+                else RecordLog("DEFEAT: Technopath destroyed.");
+            }
             AppendDetailedEvents();
             _isAnimating = false;
         }
@@ -423,6 +462,48 @@ namespace Technopath.Combat.Presentation
             if (_combatLogEntries.Count > 200) _combatLogEntries.RemoveAt(0);
         }
 
+        private void ShowVictoryReward()
+        {
+            if (_victoryRewardGranted) return;
+            _victoryRewardGranted = true;
+            inspectionPanel.ClearPinned();
+            CaptureSurvivingRobotsForCamp();
+            var reward = _rewardGenerator.Grant(_runState, rewardModulePool, rewardModuleCount, rewardParts,
+                formationSeed + _combat.RoundNumber * 101);
+            victoryRewardPanel.Show(reward, () =>
+            {
+                StartCoroutine(OpenRestStopScene());
+            });
+        }
+
+        private IEnumerator OpenRestStopScene()
+        {
+            var combatScene = gameObject.scene;
+            var load = SceneManager.LoadSceneAsync(restStopScenePath, LoadSceneMode.Additive);
+            if (load == null) throw new InvalidOperationException($"Could not load Rest Stop scene: {restStopScenePath}");
+            yield return load;
+            var restScene = SceneManager.GetSceneByPath(restStopScenePath);
+            RestStopController controller = null;
+            foreach (var root in restScene.GetRootGameObjects())
+            {
+                controller = root.GetComponentInChildren<RestStopController>(true);
+                if (controller != null) break;
+            }
+            if (controller == null) throw new InvalidOperationException("Rest Stop scene requires RestStopController.");
+            controller.Initialize(_runState, testArchetypes, () => Debug.Log("Route screen is the next implementation step."));
+            SceneManager.SetActiveScene(restScene);
+            yield return SceneManager.UnloadSceneAsync(combatScene);
+        }
+
+        private void CaptureSurvivingRobotsForCamp()
+        {
+            foreach (var entry in _unitLoadouts)
+            {
+                if (_turn.TryGetUnit(entry.Key, out var unit) && unit.IsAlive)
+                    _runState.AddRobot(new CampRobotState(entry.Key, entry.Value, unit.Health));
+            }
+        }
+
         private GridCellView GetCell(BoardSide side, GridPosition position) =>
             (side == BoardSide.Player ? playerCells : enemyCells)[position.Index];
 
@@ -442,8 +523,12 @@ namespace Technopath.Combat.Presentation
         {
             if (playerCells.Length != 9 || enemyCells.Length != 9)
                 throw new InvalidOperationException("BattlefieldPresenter requires exactly nine cells for each side.");
-            if (unitPrefab == null || unitsRoot == null || attackTracePrefab == null || inspectionPanel == null)
+            if (unitPrefab == null || unitsRoot == null || attackTracePrefab == null || inspectionPanel == null || victoryRewardPanel == null)
                 throw new InvalidOperationException("BattlefieldPresenter prefab and units root references are required.");
+            if (string.IsNullOrWhiteSpace(restStopScenePath))
+                throw new InvalidOperationException("BattlefieldPresenter requires Rest Stop scene path.");
+            if (rewardModulePool.Length == 0)
+                throw new InvalidOperationException("BattlefieldPresenter reward module pool cannot be empty.");
             if (testArchetypes.Length < 3)
                 throw new InvalidOperationException("BattlefieldPresenter requires at least three test archetype definitions.");
         }

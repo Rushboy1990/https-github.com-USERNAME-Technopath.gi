@@ -11,5 +11,8 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/_Project/Scenes/CombatSandbox.unity
     guid: c653f2a18d778ad4f97a1044281b617f
+  - enabled: 1
+    path: Assets/_Project/Scenes/RestStop.unity
+    guid: 5253c8072e605a04382b3fa8e0216e45
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}

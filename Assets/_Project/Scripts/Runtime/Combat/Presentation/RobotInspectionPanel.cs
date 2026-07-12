@@ -1,124 +1,140 @@
+using System;
+using System.Text;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Technopath.Combat.Presentation
 {
     [DisallowMultipleComponent]
     public sealed class RobotInspectionPanel : MonoBehaviour
     {
+        [Header("Compact hover card")]
+        [SerializeField] private RectTransform hoverPanel;
+        [SerializeField] private Text hoverTitle;
+        [SerializeField] private Text hoverStats;
+        [SerializeField] private Text hoverAutoAttack;
+        [SerializeField] private Text hoverPrimaryAbility;
+
+        [Header("Pinned details card")]
+        [SerializeField] private RectTransform detailsPanel;
+        [SerializeField] private Text detailsTitle;
+        [SerializeField] private Text detailsStats;
+        [SerializeField] private Text detailsAutoAttack;
+        [SerializeField] private Text detailsPrimaryAbility;
+        [SerializeField] private Text detailsUtilityAbility;
+        [SerializeField] private Text statusesText;
+        [SerializeField] private RectTransform modulesRoot;
+        [SerializeField] private ModifierInspectionItemView moduleItemPrefab;
+        [SerializeField] private Button closeButton;
+
+        [Header("Module tooltip")]
+        [SerializeField] private RectTransform tooltipPanel;
+        [SerializeField] private Text tooltipText;
+
         private RobotInspectionData _hovered;
         private RobotInspectionData _pinned;
-        private Vector2 _pointerPosition;
-        private Vector2 _detailsScroll;
-        private GUIStyle _box;
-        private GUIStyle _title;
-        private GUIStyle _text;
-        private Texture2D _backgroundTexture;
+
+        private void Awake()
+        {
+            ValidateReferences();
+            closeButton.onClick.AddListener(ClearPinned);
+            hoverPanel.gameObject.SetActive(false);
+            detailsPanel.gameObject.SetActive(false);
+            tooltipPanel.gameObject.SetActive(false);
+        }
 
         public void ShowHover(RobotInspectionData data, Vector2 pointerPosition)
         {
             _hovered = data;
-            _pointerPosition = pointerPosition;
+            var visible = data != null && (_pinned == null || data.UnitId != _pinned.UnitId);
+            hoverPanel.gameObject.SetActive(visible);
+            if (!visible) return;
+            FillShared(data, hoverTitle, hoverStats, hoverAutoAttack, hoverPrimaryAbility);
+            hoverPanel.position = ClampToScreen(pointerPosition + new Vector2(18f, 18f), hoverPanel);
         }
 
-        public void Pin(RobotInspectionData data) => _pinned = data;
-
-        public void ClearPinned() => _pinned = null;
-
-        private void OnGUI()
+        public void Pin(RobotInspectionData data)
         {
-            EnsureStyles();
-            if (_hovered != null && (_pinned == null || _hovered.UnitId != _pinned.UnitId))
-                DrawCompact(_hovered);
-            if (_pinned != null)
-                DrawDetails(_pinned);
-            if (!string.IsNullOrEmpty(GUI.tooltip))
-                DrawModifierTooltip(GUI.tooltip);
+            _pinned = data;
+            hoverPanel.gameObject.SetActive(false);
+            detailsPanel.gameObject.SetActive(data != null);
+            if (data == null) return;
+
+            FillShared(data, detailsTitle, detailsStats, detailsAutoAttack, detailsPrimaryAbility);
+            detailsUtilityAbility.text = string.IsNullOrWhiteSpace(data.UtilityAbility) ? "None" : data.UtilityAbility;
+            statusesText.text = BuildStatuses(data);
+            RebuildModules(data);
         }
 
-        private void DrawCompact(RobotInspectionData data)
+        public void ClearPinned()
         {
-            const float width = 360f;
-            const float height = 190f;
-            var x = Mathf.Clamp(_pointerPosition.x + 18f, 8f, Screen.width - width - 8f);
-            var guiPointerY = Screen.height - _pointerPosition.y;
-            var y = Mathf.Clamp(guiPointerY + 18f, 8f, Screen.height - height - 8f);
-            GUILayout.BeginArea(new Rect(x, y, width, height), GUIContent.none, _box);
-            DrawShared(data);
-            GUILayout.EndArea();
+            _pinned = null;
+            detailsPanel.gameObject.SetActive(false);
+            HideModuleTooltip();
         }
 
-        private void DrawDetails(RobotInspectionData data)
+        public void ShowModuleTooltip(string content, Vector2 pointerPosition)
         {
-            const float width = 410f;
-            var height = Mathf.Min(560f, Screen.height - 32f);
-            GUILayout.BeginArea(new Rect(Screen.width - width - 16f, 16f, width, height), GUIContent.none, _box);
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("ROBOT DETAILS", _title);
-            GUILayout.FlexibleSpace();
-            if (GUILayout.Button("X", GUILayout.Width(30f))) ClearPinned();
-            GUILayout.EndHorizontal();
-            _detailsScroll = GUILayout.BeginScrollView(_detailsScroll);
-            DrawShared(data);
-            GUILayout.Space(8f);
-            DrawSection("Processor utility", data.UtilityAbility, "None");
-            GUILayout.Space(8f);
-            GUILayout.Label("Installed modules", _title);
-            if (data.Modules.Count == 0) GUILayout.Label("None", _text);
+            if (string.IsNullOrWhiteSpace(content)) return;
+            tooltipText.text = content;
+            tooltipPanel.gameObject.SetActive(true);
+            tooltipPanel.position = ClampToScreen(pointerPosition + new Vector2(-tooltipPanel.rect.width - 18f, 18f), tooltipPanel);
+            tooltipPanel.SetAsLastSibling();
+        }
+
+        public void HideModuleTooltip() => tooltipPanel.gameObject.SetActive(false);
+
+        private void RebuildModules(RobotInspectionData data)
+        {
+            for (var index = modulesRoot.childCount - 1; index >= 0; index--)
+                Destroy(modulesRoot.GetChild(index).gameObject);
             foreach (var module in data.Modules)
-                GUILayout.Label(new GUIContent("• " + module.Name, module.Tooltip), _text);
-            GUILayout.Space(8f);
-            GUILayout.Label("Active statuses", _title);
-            if (data.Statuses.Count == 0) GUILayout.Label("None", _text);
-            foreach (var status in data.Statuses) GUILayout.Label("• " + status, _text);
-            GUILayout.EndScrollView();
-            GUILayout.EndArea();
+                Instantiate(moduleItemPrefab, modulesRoot).Bind(module, this);
         }
 
-        private void DrawModifierTooltip(string content)
+        private static void FillShared(RobotInspectionData data, Text title, Text stats, Text autoAttack, Text primary)
         {
-            const float width = 330f;
-            const float height = 150f;
-            var pointer = Event.current.mousePosition;
-            var x = Mathf.Clamp(pointer.x - width - 18f, 8f, Screen.width - width - 8f);
-            var y = Mathf.Clamp(pointer.y + 18f, 8f, Screen.height - height - 8f);
-            GUI.Box(new Rect(x, y, width, height), content, _box);
+            title.text = $"{data.Name} — {data.Archetype}";
+            stats.text = $"HP {data.Health}/{data.MaximumHealth}   ARM {data.Armor}/{data.MaximumArmor}   ATK {data.Attack}";
+            autoAttack.text = data.AutoAttack;
+            primary.text = data.PrimaryAbility;
         }
 
-        private void DrawShared(RobotInspectionData data)
+        private static string BuildStatuses(RobotInspectionData data)
         {
-            GUILayout.Label(data.Name + " — " + data.Archetype, _title);
-            GUILayout.Label($"HP {data.Health}/{data.MaximumHealth}   ARM {data.Armor}/{data.MaximumArmor}   ATK {data.Attack}", _text);
-            DrawSection("Autoattack", data.AutoAttack, "None");
-            DrawSection("Primary ability", data.PrimaryAbility, "None");
-        }
-
-        private void DrawSection(string label, string value, string fallback)
-        {
-            GUILayout.Label(label, _title);
-            GUILayout.Label(string.IsNullOrWhiteSpace(value) ? fallback : value, _text);
-        }
-
-        private void EnsureStyles()
-        {
-            if (_box != null) return;
-            _backgroundTexture = new Texture2D(1, 1, TextureFormat.RGBA32, false);
-            _backgroundTexture.SetPixel(0, 0, new Color(0.02f, 0.025f, 0.035f, 1f));
-            _backgroundTexture.Apply();
-            _box = new GUIStyle(GUI.skin.box)
+            if (data.Statuses.Count == 0) return "None";
+            var builder = new StringBuilder();
+            foreach (var status in data.Statuses)
             {
-                padding = new RectOffset(12, 12, 10, 10),
-                alignment = TextAnchor.UpperLeft,
-                wordWrap = true
-            };
-            _box.normal.background = _backgroundTexture;
-            _box.normal.textColor = Color.white;
-            _title = new GUIStyle(GUI.skin.label) { fontSize = 14, fontStyle = FontStyle.Bold, wordWrap = true };
-            _text = new GUIStyle(GUI.skin.label) { fontSize = 13, wordWrap = true };
+                if (builder.Length > 0) builder.AppendLine();
+                builder.Append("• ").Append(status);
+            }
+            return builder.ToString();
+        }
+
+        private static Vector2 ClampToScreen(Vector2 position, RectTransform panel)
+        {
+            var width = panel.rect.width;
+            var height = panel.rect.height;
+            return new Vector2(
+                Mathf.Clamp(position.x, 8f, Screen.width - width - 8f),
+                Mathf.Clamp(position.y, height + 8f, Screen.height - 8f));
         }
 
         private void OnDestroy()
         {
-            if (_backgroundTexture != null) Destroy(_backgroundTexture);
+            if (closeButton != null)
+                closeButton.onClick.RemoveListener(ClearPinned);
+        }
+
+        private void ValidateReferences()
+        {
+            if (hoverPanel == null || hoverTitle == null || hoverStats == null || hoverAutoAttack == null ||
+                hoverPrimaryAbility == null || detailsPanel == null || detailsTitle == null || detailsStats == null ||
+                detailsAutoAttack == null || detailsPrimaryAbility == null || detailsUtilityAbility == null ||
+                statusesText == null || modulesRoot == null || moduleItemPrefab == null || closeButton == null ||
+                tooltipPanel == null || tooltipText == null)
+                throw new InvalidOperationException("RobotInspectionPanel requires all uGUI and prefab references.");
         }
     }
 }

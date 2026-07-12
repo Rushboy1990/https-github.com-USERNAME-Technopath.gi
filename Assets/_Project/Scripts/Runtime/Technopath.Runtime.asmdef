@@ -2,7 +2,8 @@
   "name": "Technopath.Runtime",
   "rootNamespace": "Technopath",
   "references": [
-    "Unity.InputSystem"
+    "Unity.InputSystem",
+    "Unity.ugui"
   ],
   "autoReferenced": true
 }

@@ -40,12 +40,6 @@ namespace Technopath.Combat.Presentation
                 return true;
             }
 
-            if (Touchscreen.current != null && Touchscreen.current.primaryTouch.press.wasPressedThisFrame)
-            {
-                position = Touchscreen.current.primaryTouch.position.ReadValue();
-                return true;
-            }
-
             position = default;
             return false;
         }
