@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -8,10 +9,8 @@ namespace Technopath.Combat.Presentation
     public sealed class BattleHudView : MonoBehaviour
     {
         private BattlefieldPresenter _presenter;
-        [SerializeField] private Text roundText;
-        [SerializeField] private Text phaseText;
+        [SerializeField] private Text roundPhaseText;
         [SerializeField] private Text actionPointsText;
-        [SerializeField] private Text selectionText;
         [SerializeField] private Button finishTurnButton;
 
         private void Awake()
@@ -25,11 +24,28 @@ namespace Technopath.Combat.Presentation
         private void Update()
         {
             if (_presenter == null) return;
-            roundText.text = $"ROUND {_presenter.RoundNumber}";
-            phaseText.text = _presenter.PhaseDescription;
-            actionPointsText.text = $"ACTION POINTS  {_presenter.ActionPoints}";
-            selectionText.text = _presenter.SelectionDescription;
+            roundPhaseText.text = $"ROUND {_presenter.RoundNumber}   {FormatPhase(_presenter.PhaseDescription)}";
+            actionPointsText.text = FormatActionPoints(_presenter.ActionPoints);
             finishTurnButton.interactable = _presenter.PhaseDescription == "PlayerTurn";
+        }
+
+        private static string FormatPhase(string phase) => phase switch
+        {
+            "PlayerTurn" => "PLAYER TURN",
+            "MutantTurn" => "MUTANT TURN",
+            _ => phase.ToUpperInvariant()
+        };
+
+        private static string FormatActionPoints(int current)
+        {
+            var capacity = Math.Max(3, current);
+            var builder = new StringBuilder(capacity * 2);
+            for (var index = 0; index < capacity; index++)
+            {
+                if (index > 0) builder.Append(' ');
+                builder.Append(index < current ? '●' : '○');
+            }
+            return builder.ToString();
         }
 
         private void FinishTurn() => _presenter?.FinishTurn();
@@ -42,8 +58,8 @@ namespace Technopath.Combat.Presentation
 
         private void ValidateReferences()
         {
-            if (roundText == null || phaseText == null || actionPointsText == null || selectionText == null || finishTurnButton == null)
-                throw new InvalidOperationException("BattleHudView requires labels and Finish Turn button references.");
+            if (roundPhaseText == null || actionPointsText == null || finishTurnButton == null)
+                throw new InvalidOperationException("BattleHudView requires round/phase, action points and End Turn button references.");
         }
     }
 }

@@ -11,9 +11,12 @@ namespace Technopath.Combat.Presentation
         [Header("Compact hover card")]
         [SerializeField] private RectTransform hoverPanel;
         [SerializeField] private Text hoverTitle;
-        [SerializeField] private Text hoverStats;
-        [SerializeField] private Text hoverAutoAttack;
-        [SerializeField] private Text hoverPrimaryAbility;
+        [SerializeField] private Text hoverHealthText;
+        [SerializeField] private Image hoverHealthFill;
+        [SerializeField] private Text hoverArmorText;
+        [SerializeField] private Image hoverArmorFill;
+        [SerializeField] private Text hoverDamageText;
+        [SerializeField] private Text hoverAbilityText;
 
         [Header("Pinned details card")]
         [SerializeField] private RectTransform detailsPanel;
@@ -49,7 +52,7 @@ namespace Technopath.Combat.Presentation
             var visible = data != null && (_pinned == null || data.UnitId != _pinned.UnitId);
             hoverPanel.gameObject.SetActive(visible);
             if (!visible) return;
-            FillShared(data, hoverTitle, hoverStats, hoverAutoAttack, hoverPrimaryAbility);
+            FillHover(data);
             hoverPanel.position = ClampToScreen(pointerPosition + new Vector2(18f, 18f), hoverPanel);
         }
 
@@ -100,6 +103,17 @@ namespace Technopath.Combat.Presentation
             primary.text = data.PrimaryAbility;
         }
 
+        private void FillHover(RobotInspectionData data)
+        {
+            hoverTitle.text = $"{data.Name} — {data.Archetype}";
+            hoverHealthText.text = $"HP     {data.Health}/{data.MaximumHealth}";
+            hoverHealthFill.fillAmount = data.MaximumHealth > 0 ? Mathf.Clamp01((float)data.Health / data.MaximumHealth) : 0f;
+            hoverArmorText.text = $"ARMOR  {data.Armor}/{data.MaximumArmor}";
+            hoverArmorFill.fillAmount = data.MaximumArmor > 0 ? Mathf.Clamp01((float)data.Armor / data.MaximumArmor) : 0f;
+            hoverDamageText.text = $"DAMAGE  {data.Attack}";
+            hoverAbilityText.text = string.IsNullOrWhiteSpace(data.PrimaryAbility) ? "No primary ability" : data.PrimaryAbility;
+        }
+
         private static string BuildStatuses(RobotInspectionData data)
         {
             if (data.Statuses.Count == 0) return "None";
@@ -129,8 +143,9 @@ namespace Technopath.Combat.Presentation
 
         private void ValidateReferences()
         {
-            if (hoverPanel == null || hoverTitle == null || hoverStats == null || hoverAutoAttack == null ||
-                hoverPrimaryAbility == null || detailsPanel == null || detailsTitle == null || detailsStats == null ||
+            if (hoverPanel == null || hoverTitle == null || hoverHealthText == null || hoverHealthFill == null ||
+                hoverArmorText == null || hoverArmorFill == null || hoverDamageText == null || hoverAbilityText == null ||
+                detailsPanel == null || detailsTitle == null || detailsStats == null ||
                 detailsAutoAttack == null || detailsPrimaryAbility == null || detailsUtilityAbility == null ||
                 statusesText == null || modulesRoot == null || moduleItemPrefab == null || closeButton == null ||
                 tooltipPanel == null || tooltipText == null)
