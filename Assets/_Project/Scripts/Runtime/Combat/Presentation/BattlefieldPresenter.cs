@@ -48,6 +48,7 @@ namespace Technopath.Combat.Presentation
         private readonly StatusCollection _statuses = new();
         private readonly Dictionary<string, RobotArchetypeDefinition> _unitArchetypes = new();
         private readonly Dictionary<string, RobotLoadout> _unitLoadouts = new();
+        private readonly Dictionary<string, MutantProfile> _mutantProfiles = new();
         private RunFlowController _runFlow;
         private RunState _runState;
         private readonly BattleRewardGenerator _rewardGenerator = new();
@@ -177,6 +178,10 @@ namespace Technopath.Combat.Presentation
                     log.Append(DescribeDamage(attack));
                 else
                     log.Append($"{attack.AttackerId} fired into empty row. ");
+                if (attack.HasTarget && attack.DamageResult.Killed &&
+                    _unitViews.TryGetValue(attack.TargetId, out var destroyedView))
+                    destroyedView.ShowDestroyed();
+                yield return new WaitForSeconds(0.18f);
             }
             foreach (var attack in result.Attacks)
             {
@@ -205,10 +210,12 @@ namespace Technopath.Combat.Presentation
             var mutantDamageBonus = encounter.Kind == RunEncounterKind.Boss ? 2 : encounter.Kind == RunEncounterKind.Elite ? 1 : 0;
             var profiles = new List<MutantProfile>
             {
-                new("mutant-1", 10, 1 + mutantDamageBonus),
-                new("mutant-2", 20, 2 + mutantDamageBonus),
-                new("mutant-3", 30, 3 + mutantDamageBonus)
+                new("mutant-1", 10, 1 + mutantDamageBonus, "Skitter", "Scout strike", 4, 0),
+                new("mutant-2", 20, 2 + mutantDamageBonus, "Brute", "Crushing strike", 9, 2),
+                new("mutant-3", 30, 3 + mutantDamageBonus, "Spitter", "Corrosive strike", 6, 1)
             };
+            foreach (var profile in profiles)
+                _mutantProfiles.Add(profile.UnitId, profile);
             var archetypes = new Dictionary<string, RobotArchetypeDefinition>();
             var initialHealth = new Dictionary<string, int>
             {
@@ -239,12 +246,15 @@ namespace Technopath.Combat.Presentation
             _isAnimating = true;
             _isPresentingEnemyTurn = true;
             foreach (var unit in _unitViews.Values) unit.HideIntent();
+            ClearThreatHighlights();
             _combat.FinishPlayerTurn();
             RecordLog("Mutants are executing their intents.");
             var actions = _combat.ResolveMutantTurn(formationSeed + _combat.RoundNumber);
 
             foreach (var action in actions)
             {
+                if (_unitViews.TryGetValue(action.MutantId, out var actingMutant))
+                    actingMutant.SetActivating(true);
                 ShowAttackFeedback(action.Attack);
                 RecordLog(action.Attack.HasTarget
                     ? DescribeDamage(action.Attack)
@@ -257,9 +267,14 @@ namespace Technopath.Combat.Presentation
                 if (action.Attack.HasTarget && !_turn.IsAlive(action.Attack.TargetId) &&
                     _unitViews.TryGetValue(action.Attack.TargetId, out var deadView))
                 {
+                    deadView.ShowDestroyed();
+                    yield return new WaitForSeconds(0.18f);
                     _unitViews.Remove(action.Attack.TargetId);
                     Destroy(deadView.gameObject);
                 }
+
+                if (_unitViews.TryGetValue(action.MutantId, out actingMutant))
+                    actingMutant.SetActivating(false);
             }
 
             _isPresentingEnemyTurn = false;
@@ -267,8 +282,9 @@ namespace Technopath.Combat.Presentation
             if (_combat.Phase == CombatPhase.PlayerTurn)
             {
                 _abilityEngine.BeginPhase();
+                RefreshUnitVitals();
                 ShowIntents();
-                RecordLog($"Round {_combat.RoundNumber} started. Player armor restored.");
+                RecordLog($"Round {_combat.RoundNumber} started. Mutant and player shields restored.");
             }
             else
             {
@@ -290,10 +306,38 @@ namespace Technopath.Combat.Presentation
 
         private void ShowIntents()
         {
+            ClearThreatHighlights();
             foreach (var intent in _combat.Intents)
             {
                 if (_unitViews.TryGetValue(intent.MutantId, out var view))
-                    view.ShowAttackIntent(intent.AttackDamage);
+                {
+                    var row = GetEnemyRow(intent.MutantId);
+                    var intentName = _mutantProfiles.TryGetValue(intent.MutantId, out var profile)
+                        ? profile.RoleName.ToUpperInvariant()
+                        : "ATTACK";
+                    view.ShowAttackIntent(intent.AttackDamage, row, intentName);
+                    ShowThreatenedRow(row);
+                }
+            }
+        }
+
+        private void ShowThreatenedRow(int row)
+        {
+            for (var column = 0; column < GridPosition.Size; column++)
+                GetCell(BoardSide.Player, new GridPosition(row, column)).ShowThreatened();
+        }
+
+        private void ClearThreatHighlights()
+        {
+            foreach (var cell in playerCells) cell.ShowNormal();
+        }
+
+        private void RefreshUnitVitals()
+        {
+            foreach (var entry in _unitViews)
+            {
+                if (!_turn.TryGetUnit(entry.Key, out var unit)) continue;
+                entry.Value.UpdateVitals(unit.Health, unit.MaxHealth, unit.Shield, unit.MaxShield);
             }
         }
 
@@ -305,11 +349,20 @@ namespace Technopath.Combat.Presentation
                     continue;
                 var token = Instantiate(unitPrefab, GetCell(grid.Side, cell.Position).transform.position,
                     Quaternion.identity, unitsRoot);
-                token.Bind(cell.OccupantId, grid.Side, cell.OccupantId == StartingFormationFactory.TechnopathId);
-                if (grid.Side == BoardSide.Player && _unitArchetypes.TryGetValue(cell.OccupantId, out var archetype))
-                    token.ShowArchetype(archetype.DisplayName);
+                var isTechnopath = cell.OccupantId == StartingFormationFactory.TechnopathId;
+                token.Bind(cell.OccupantId, grid.Side, isTechnopath,
+                    GetUnitDisplayName(cell.OccupantId, grid.Side, isTechnopath));
+                if (_turn.TryGetUnit(cell.OccupantId, out var unit))
+                    token.UpdateVitals(unit.Health, unit.MaxHealth, unit.Shield, unit.MaxShield);
                 _unitViews.Add(cell.OccupantId, token);
             }
+        }
+
+        private string GetUnitDisplayName(string unitId, BoardSide side, bool isTechnopath)
+        {
+            if (isTechnopath) return "TECHNOPATH";
+            if (side == BoardSide.Enemy && _mutantProfiles.TryGetValue(unitId, out var profile)) return profile.DisplayName;
+            return _unitArchetypes.TryGetValue(unitId, out var archetype) ? archetype.DisplayName : unitId;
         }
 
         private Dictionary<string, RobotArchetypeDefinition> BuildDistinctStartingArchetypes()
@@ -341,6 +394,12 @@ namespace Technopath.Combat.Presentation
 
         private void ShowAttackFeedback(AutoAttackResult attack)
         {
+            if (attack.HasTarget && _unitViews.TryGetValue(attack.TargetId, out var targetView))
+            {
+                targetView.ShowDamage(attack.DamageResult);
+                if (_turn.TryGetUnit(attack.TargetId, out var unit))
+                    targetView.UpdateVitals(unit.Health, unit.MaxHealth, unit.Shield, unit.MaxShield);
+            }
             if (attackTracePrefab == null || !_unitViews.TryGetValue(attack.AttackerId, out var attacker))
                 return;
 
@@ -362,7 +421,7 @@ namespace Technopath.Combat.Presentation
         private string DescribeUnit(BoardSide side, GridPosition position, string unitId)
         {
             var unit = _turn.GetUnit(unitId);
-            var baseDescription = $"{side} {position}: {unitId}, HP {unit.Health}/{unit.MaxHealth}, ARM {unit.Armor}/{unit.MaxArmor}, ATK {unit.AttackDamage}";
+            var baseDescription = $"{side} {position}: {unitId}, HP {unit.Health}/{unit.MaxHealth}, SHD {unit.Shield}/{unit.MaxShield}, ATK {unit.AttackDamage}";
             if (_unitLoadouts.TryGetValue(unitId, out var loadout))
             {
                 var stats = loadout.CalculateStats();
@@ -386,8 +445,24 @@ namespace Technopath.Combat.Presentation
         private bool TryCreateRobotInspection(string unitId, out RobotInspectionData inspection)
         {
             inspection = null;
-            if (!_unitArchetypes.TryGetValue(unitId, out var archetype) || !_turn.TryGetUnit(unitId, out var unit))
+            if (!_turn.TryGetUnit(unitId, out var unit))
                 return false;
+
+            if (unit.Side == BoardSide.Enemy)
+            {
+                if (!_mutantProfiles.TryGetValue(unitId, out var profile)) return false;
+                var intent = FindIntent(unitId);
+                var threat = intent == null
+                    ? "No active intent"
+                    : $"{profile.RoleName}: attacks player row {GetEnemyRow(unitId) + 1} for {intent.AttackDamage} damage. Movement destination is hidden.";
+                inspection = new RobotInspectionData(unitId, profile.DisplayName, "Mutant",
+                    unit.Health, unit.MaxHealth, unit.Shield, unit.MaxShield, unit.AttackDamage,
+                    "Attacks the first target in its current row.", threat, null,
+                    Array.Empty<ModifierInspectionData>(), Array.Empty<string>());
+                return true;
+            }
+
+            if (!_unitArchetypes.TryGetValue(unitId, out var archetype)) return false;
 
             _unitLoadouts.TryGetValue(unitId, out var loadout);
             var primary = loadout?.GetPrimaryAbility();
@@ -413,11 +488,21 @@ namespace Technopath.Combat.Presentation
                 : $"{archetype.AbilityName}: {archetype.AbilityRulesText}";
             var utilityText = utility == null ? null : $"{utility.Name}: {utility.RulesText}";
             inspection = new RobotInspectionData(unitId, unitId, archetype.DisplayName,
-                unit.Health, unit.MaxHealth, unit.Armor, unit.MaxArmor, unit.AttackDamage,
+                unit.Health, unit.MaxHealth, unit.Shield, unit.MaxShield, unit.AttackDamage,
                 $"Deals {unit.AttackDamage} damage to the first target in its row after movement.",
                 primaryText, utilityText, modules, statuses);
             return true;
         }
+
+        private MutantIntent FindIntent(string unitId)
+        {
+            foreach (var intent in _combat.Intents)
+                if (intent.MutantId == unitId) return intent;
+            return null;
+        }
+
+        private int GetEnemyRow(string unitId) =>
+            _battlefield.Enemy.TryFindUnit(unitId, out var position) ? position.Row : 0;
 
         private static ModifierInspectionData CreateModuleInspection(string slotName, RobotModuleDefinition module) =>
             module == null
@@ -426,14 +511,14 @@ namespace Technopath.Combat.Presentation
 
         private static string FormatModuleTooltip(RobotModuleDefinition module)
         {
-            var stats = $"HP {module.HealthModifier:+#;-#;0}   ARM {module.ArmorModifier:+#;-#;0}   ATK {module.AttackModifier:+#;-#;0}";
+            var stats = $"HP {module.HealthModifier:+#;-#;0}   SHD {module.ShieldModifier:+#;-#;0}   ATK {module.AttackModifier:+#;-#;0}";
             return $"{module.DisplayName}\n{module.Rarity}, level {module.Level}\n{module.RulesText}\n{stats}";
         }
 
         private static string DescribeDamage(AutoAttackResult attack)
         {
             var damage = attack.DamageResult;
-            return $"{attack.AttackerId} → {attack.TargetId}: ARM -{damage.AbsorbedByArmor}, HP -{damage.HealthDamage}. ";
+            return $"{attack.AttackerId} → {attack.TargetId}: SHD -{damage.AbsorbedByShield}, HP -{damage.HealthDamage}. ";
         }
 
         private void AppendDetailedEvents()
@@ -455,7 +540,7 @@ namespace Technopath.Combat.Presentation
                         _statuses.TryConsume(combatEvent.TargetId, "status.target-lock", out var bonusDamage))
                     {
                         _turn.ApplyDamageDetailed(combatEvent.TargetId, bonusDamage);
-                        builder.Append($" → Status[target-lock]:HP/ARM -{bonusDamage}");
+                        builder.Append($" → Status[target-lock]:HP/SHD -{bonusDamage}");
                     }
 
                     foreach (var activation in _abilityEngine.Evaluate(combatEvent))
@@ -492,7 +577,11 @@ namespace Technopath.Combat.Presentation
                 encounter.RewardModuleCount, encounter.RewardParts,
                 formationSeed + _combat.RoundNumber * 101);
             Action continueAction = encounter.IsBoss
-                ? () => victoryRewardPanel.ShowRunResult(true, _runState, RestartRun)
+                ? () =>
+                {
+                    RunSession.CompleteSuccessfulRun();
+                    victoryRewardPanel.ShowRunResult(true, _runState, RestartRun);
+                }
                 : () => StartCoroutine(OpenRestStopScene());
             victoryRewardPanel.Show(reward, continueAction);
         }
@@ -536,25 +625,42 @@ namespace Technopath.Combat.Presentation
             _runState = _runFlow.State;
             if (_runState.Robots.Count > 0) return;
 
-            var archetypes = BuildDistinctStartingArchetypes();
-            foreach (var entry in archetypes)
+            foreach (var entry in BuildStartingLoadouts())
             {
-                RobotLoadout loadout = null;
-                foreach (var preset in testLoadoutPresets)
-                    if (preset != null && preset.Archetype == entry.Value)
-                    {
-                        loadout = preset.BuildRuntimeLoadout();
-                        break;
-                    }
-                loadout ??= new RobotLoadout(entry.Value);
-                _runState.AddRobot(new CampRobotState(entry.Key, loadout, loadout.CalculateStats().Health));
+                _runState.AddRobot(new CampRobotState(entry.Key, entry.Value, entry.Value.CalculateStats().Health));
             }
+        }
+
+        private Dictionary<string, RobotLoadout> BuildStartingLoadouts()
+        {
+            var archetypes = BuildDistinctStartingArchetypes();
+            return _runState.StartConfiguration.StartingCrew switch
+            {
+                StartingCrewId.Scraphawk => new Dictionary<string, RobotLoadout>
+                {
+                    ["scraphawk-striker"] = new RobotLoadout(archetypes["robot-3"]),
+                    ["scraphawk-relay"] = new RobotLoadout(archetypes["robot-2"]),
+                    ["scraphawk-bulwark"] = new RobotLoadout(archetypes["robot-1"])
+                },
+                StartingCrewId.Deepvault => new Dictionary<string, RobotLoadout>
+                {
+                    ["deepvault-bulwark"] = new RobotLoadout(archetypes["robot-1"]),
+                    ["deepvault-relay"] = new RobotLoadout(archetypes["robot-2"]),
+                    ["deepvault-striker"] = new RobotLoadout(archetypes["robot-3"])
+                },
+                _ => new Dictionary<string, RobotLoadout>
+                {
+                    ["rustwalker-bulwark"] = new RobotLoadout(archetypes["robot-1"]),
+                    ["rustwalker-relay"] = new RobotLoadout(archetypes["robot-2"]),
+                    ["rustwalker-striker"] = new RobotLoadout(archetypes["robot-3"])
+                }
+            };
         }
 
         private void RestartRun()
         {
             RunSession.Reset();
-            SceneManager.LoadScene(gameObject.scene.path, LoadSceneMode.Single);
+            SceneManager.LoadScene("Bootstrap", LoadSceneMode.Single);
         }
 
         private GridCellView GetCell(BoardSide side, GridPosition position) =>
@@ -564,6 +670,8 @@ namespace Technopath.Combat.Presentation
         {
             foreach (var cell in playerCells) cell.ShowNormal();
             foreach (var cell in enemyCells) cell.ShowNormal();
+            if (_combat != null && _combat.Phase == CombatPhase.PlayerTurn)
+                ShowIntents();
         }
 
         private static void InitializeCells(IReadOnlyList<GridCellView> cells, BoardSide side)

@@ -20,10 +20,9 @@ MonoBehaviour:
   level: 1
   compatibleRoles: 
   healthModifier: 0
-  armorModifier: 3
+  shieldModifier: 3
   attackModifier: -1
   abilityName: Fortress Pulse
-  abilityRulesText: 'Replaces the primary ability: at player phase start, restore
-    2 armor to adjacent allies.'
+  abilityRulesText: After this robot attacks, grant 2 shield to adjacent allies.
   abilityTrigger: 0
   abilityEffectValue: 2

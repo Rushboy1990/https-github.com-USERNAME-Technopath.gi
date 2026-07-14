@@ -20,9 +20,9 @@ MonoBehaviour:
   level: 1
   compatibleRoles: 
   healthModifier: 0
-  armorModifier: 0
+  shieldModifier: 0
   attackModifier: 1
   abilityName: Salvage Trigger
-  abilityRulesText: After this robot kills a target, restore 1 armor once per phase.
+  abilityRulesText: After this robot kills a target, restore 1 shield once per phase.
   abilityTrigger: 5
   abilityEffectValue: 1

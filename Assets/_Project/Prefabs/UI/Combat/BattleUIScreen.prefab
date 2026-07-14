@@ -123,7 +123,7 @@ GameObject:
   - component: {fileID: 4683795072390867986}
   - component: {fileID: 7566605569409899752}
   m_Layer: 0
-  m_Name: DetailsArmorBarFill
+  m_Name: DetailsShieldBarFill
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1130,16 +1130,16 @@ MonoBehaviour:
   hoverTitle: {fileID: 1827433634760909113}
   hoverHealthText: {fileID: 9119484694223991338}
   hoverHealthFill: {fileID: 8415407214269156925}
-  hoverArmorText: {fileID: 7014454547727892429}
-  hoverArmorFill: {fileID: 3005303704320509860}
+  hoverShieldText: {fileID: 7014454547727892429}
+  hoverShieldFill: {fileID: 3005303704320509860}
   hoverDamageText: {fileID: 5571890421116438321}
   hoverAbilityText: {fileID: 922558530701655424}
   detailsPanel: {fileID: 5269069982232572106}
   detailsTitle: {fileID: 8364016720883109330}
   detailsHealthText: {fileID: 6671887547528141238}
   detailsHealthFill: {fileID: 1313712539979372113}
-  detailsArmorText: {fileID: 5724411120484085053}
-  detailsArmorFill: {fileID: 7566605569409899752}
+  detailsShieldText: {fileID: 5724411120484085053}
+  detailsShieldFill: {fileID: 7566605569409899752}
   detailsDamageText: {fileID: 7016145805322578770}
   detailsAutoAttack: {fileID: 7084920350244267126}
   detailsAbilityTitle: {fileID: 3152834639428519023}
@@ -1507,7 +1507,7 @@ GameObject:
   - component: {fileID: 5621149866691645403}
   - component: {fileID: 2601852515383310713}
   m_Layer: 0
-  m_Name: DetailsArmorBarBackground
+  m_Name: DetailsShieldBarBackground
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1677,7 +1677,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6469193287395404963, guid: d39ffeb03b1cfc742bd4417292d354a9, type: 3}
       propertyPath: m_Text
-      value: HP 5/5   ARM 0/0   ATK 2
+      value: HP 5/5   SHD 0/0   ATK 2
       objectReference: {fileID: 0}
     - target: {fileID: 6469193287395404963, guid: d39ffeb03b1cfc742bd4417292d354a9, type: 3}
       propertyPath: m_Color.b
@@ -2302,8 +2302,28 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 1041202416357400005, guid: d927a1fccb844fb4c832b8ab007116f3, type: 3}
       insertIndex: -1
       addedObject: {fileID: 7467366519186570654}
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1996374927095568245, guid: d927a1fccb844fb4c832b8ab007116f3, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7563899106978491760}
   m_SourcePrefab: {fileID: 100100000, guid: d927a1fccb844fb4c832b8ab007116f3, type: 3}
+--- !u!1 &1136837554695394364 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1996374927095568245, guid: d927a1fccb844fb4c832b8ab007116f3, type: 3}
+  m_PrefabInstance: {fileID: 1473336582574850889}
+  m_PrefabAsset: {fileID: 0}
+--- !u!225 &7563899106978491760
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1136837554695394364}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 0
+  m_IgnoreParentGroups: 0
 --- !u!224 &1873866623475293836 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 1041202416357400005, guid: d927a1fccb844fb4c832b8ab007116f3, type: 3}
@@ -2464,7 +2484,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 841568115363597329, guid: d39ffeb03b1cfc742bd4417292d354a9, type: 3}
       propertyPath: m_Name
-      value: DetailsArmorText
+      value: DetailsShieldText
       objectReference: {fileID: 0}
     - target: {fileID: 5588363482933075419, guid: d39ffeb03b1cfc742bd4417292d354a9, type: 3}
       propertyPath: m_Pivot.x
@@ -3177,7 +3197,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6469193287395404963, guid: d39ffeb03b1cfc742bd4417292d354a9, type: 3}
       propertyPath: m_Text
-      value: HP 5/5   ARM 0/0   ATK 2
+      value: HP 5/5   SHD 0/0   ATK 2
       objectReference: {fileID: 0}
     - target: {fileID: 6469193287395404963, guid: d39ffeb03b1cfc742bd4417292d354a9, type: 3}
       propertyPath: m_Color.b
@@ -3825,7 +3845,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 841568115363597329, guid: d39ffeb03b1cfc742bd4417292d354a9, type: 3}
       propertyPath: m_Name
-      value: HoverArmorText
+      value: HoverShieldText
       objectReference: {fileID: 0}
     - target: {fileID: 5588363482933075419, guid: d39ffeb03b1cfc742bd4417292d354a9, type: 3}
       propertyPath: m_Pivot.x
@@ -4580,7 +4600,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1996374927095568245, guid: d927a1fccb844fb4c832b8ab007116f3, type: 3}
       propertyPath: m_Name
-      value: ArmorBarFill
+      value: ShieldBarFill
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -5399,13 +5419,33 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 1041202416357400005, guid: d927a1fccb844fb4c832b8ab007116f3, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5924484498841575068}
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1996374927095568245, guid: d927a1fccb844fb4c832b8ab007116f3, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4280191266878294836}
   m_SourcePrefab: {fileID: 100100000, guid: d927a1fccb844fb4c832b8ab007116f3, type: 3}
 --- !u!224 &5319470088654349872 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 1041202416357400005, guid: d927a1fccb844fb4c832b8ab007116f3, type: 3}
   m_PrefabInstance: {fileID: 5161571335877180405}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &6635237814504729728 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1996374927095568245, guid: d927a1fccb844fb4c832b8ab007116f3, type: 3}
+  m_PrefabInstance: {fileID: 5161571335877180405}
+  m_PrefabAsset: {fileID: 0}
+--- !u!225 &4280191266878294836
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6635237814504729728}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 0
+  m_IgnoreParentGroups: 0
 --- !u!1001 &5666624632525526706
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -5980,7 +6020,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1996374927095568245, guid: d927a1fccb844fb4c832b8ab007116f3, type: 3}
       propertyPath: m_Name
-      value: ArmorBarBackground
+      value: ShieldBarBackground
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

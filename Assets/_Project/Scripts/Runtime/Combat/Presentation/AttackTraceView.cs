@@ -18,12 +18,12 @@ namespace Technopath.Combat.Presentation
             damageLabel.transform.position = Vector3.Lerp(origin, destination, 0.65f) + Vector3.up * 0.35f;
             if (!attack.HasTarget)
                 damageLabel.text = "MISS";
-            else if (attack.DamageResult.AbsorbedByArmor == 0)
+            else if (attack.DamageResult.AbsorbedByShield == 0)
                 damageLabel.text = $"HP -{attack.DamageResult.HealthDamage}";
             else if (attack.DamageResult.HealthDamage == 0)
-                damageLabel.text = $"ARM -{attack.DamageResult.AbsorbedByArmor}";
+                damageLabel.text = $"SHD -{attack.DamageResult.AbsorbedByShield}";
             else
-                damageLabel.text = $"ARM -{attack.DamageResult.AbsorbedByArmor}  HP -{attack.DamageResult.HealthDamage}";
+                damageLabel.text = $"SHD -{attack.DamageResult.AbsorbedByShield}  HP -{attack.DamageResult.HealthDamage}";
             StartCoroutine(Expire());
         }
 

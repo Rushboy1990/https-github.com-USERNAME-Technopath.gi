@@ -20,7 +20,7 @@ MonoBehaviour:
   level: 1
   compatibleRoles: 
   healthModifier: 0
-  armorModifier: 1
+  shieldModifier: 1
   attackModifier: 1
   abilityName: Arc Mark
   abilityRulesText: 'Replaces the primary ability: after attacking, mark the target

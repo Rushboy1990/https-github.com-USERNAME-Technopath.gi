@@ -16,6 +16,7 @@ namespace Technopath.Tests.EditMode
             var combat = new CombatRoundModel(field,
                 new List<MutantProfile> { new("mutant", 10, 3) }, seed: 5);
             var plannedDestination = combat.Intents[0].PlannedDestination;
+            combat.PlayerTurn.ApplyDamage("mutant", 1);
 
             Assert.That(combat.Phase, Is.EqualTo(CombatPhase.PlayerTurn));
             combat.FinishPlayerTurn();
@@ -23,7 +24,8 @@ namespace Technopath.Tests.EditMode
 
             Assert.That(actions[0].Attack.TargetId, Is.EqualTo(StartingFormationFactory.TechnopathId));
             Assert.That(combat.PlayerTurn.GetUnit(StartingFormationFactory.TechnopathId).Health, Is.EqualTo(10));
-            Assert.That(combat.PlayerTurn.GetUnit(StartingFormationFactory.TechnopathId).Armor, Is.EqualTo(3));
+            Assert.That(combat.PlayerTurn.GetUnit(StartingFormationFactory.TechnopathId).Shield, Is.EqualTo(3));
+            Assert.That(combat.PlayerTurn.GetUnit("mutant").Shield, Is.EqualTo(3));
             Assert.That(actions[0].Destination, Is.EqualTo(plannedDestination));
             Assert.That(combat.Phase, Is.EqualTo(CombatPhase.PlayerTurn));
             Assert.That(combat.RoundNumber, Is.EqualTo(2));

@@ -25,7 +25,7 @@ namespace Technopath.Tests.EditMode
             var stats = loadout.CalculateStats();
 
             Assert.That(stats.Health, Is.EqualTo(13));
-            Assert.That(stats.Armor, Is.EqualTo(6));
+            Assert.That(stats.Shield, Is.EqualTo(6));
             Assert.That(stats.Attack, Is.EqualTo(7));
             Assert.That(stats.Sources.Count, Is.EqualTo(6));
         }
@@ -50,7 +50,7 @@ namespace Technopath.Tests.EditMode
             var stats = new RobotLoadout(archetype).CalculateStats();
 
             Assert.That(stats.Health, Is.EqualTo(9));
-            Assert.That(stats.Armor, Is.EqualTo(2));
+            Assert.That(stats.Shield, Is.EqualTo(2));
             Assert.That(stats.Attack, Is.EqualTo(2));
         }
 
@@ -72,19 +72,19 @@ namespace Technopath.Tests.EditMode
             Assert.That(loadout.GetProcessorAbility().Name, Is.EqualTo("Utility Ability"));
         }
 
-        private static RobotArchetypeDefinition CreateArchetype(ArchetypeRole role, int health, int armor, int attack)
+        private static RobotArchetypeDefinition CreateArchetype(ArchetypeRole role, int health, int shield, int attack)
         {
             var definition = ScriptableObject.CreateInstance<RobotArchetypeDefinition>();
             Set(definition, "id", $"robot.{role.ToString().ToLowerInvariant()}");
             Set(definition, "displayName", role.ToString());
             Set(definition, "role", role);
             Set(definition, "maximumHealth", health);
-            Set(definition, "maximumArmor", armor);
+            Set(definition, "maximumShield", shield);
             Set(definition, "autoAttackDamage", attack);
             return definition;
         }
 
-        private static RobotModuleDefinition CreateModule(string name, ModuleSlotType slot, int health, int armor,
+        private static RobotModuleDefinition CreateModule(string name, ModuleSlotType slot, int health, int shield,
             int attack, ArchetypeRole[] roles = null)
         {
             var definition = ScriptableObject.CreateInstance<RobotModuleDefinition>();
@@ -94,7 +94,7 @@ namespace Technopath.Tests.EditMode
             Set(definition, "rarity", ModuleRarity.Rare);
             Set(definition, "level", 2);
             Set(definition, "healthModifier", health);
-            Set(definition, "armorModifier", armor);
+            Set(definition, "shieldModifier", shield);
             Set(definition, "attackModifier", attack);
             Set(definition, "compatibleRoles", roles ?? System.Array.Empty<ArchetypeRole>());
             return definition;

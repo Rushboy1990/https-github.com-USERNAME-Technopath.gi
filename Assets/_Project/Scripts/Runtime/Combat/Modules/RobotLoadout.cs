@@ -74,21 +74,21 @@ namespace Technopath.Combat.Modules
         public RobotStatSummary CalculateStats()
         {
             var health = Archetype.MaximumHealth;
-            var armor = Archetype.MaximumArmor;
+            var shield = Archetype.MaximumShield;
             var attack = Archetype.AutoAttackDamage;
             var sources = new List<string> { $"Archetype: {Archetype.DisplayName}" };
-            Apply(Core, ref health, ref armor, ref attack, sources);
-            Apply(Processor, ref health, ref armor, ref attack, sources);
-            foreach (var modifier in _modifiers) Apply(modifier, ref health, ref armor, ref attack, sources);
-            return new RobotStatSummary(Math.Max(1, health), Math.Max(0, armor), Math.Max(0, attack), sources);
+            Apply(Core, ref health, ref shield, ref attack, sources);
+            Apply(Processor, ref health, ref shield, ref attack, sources);
+            foreach (var modifier in _modifiers) Apply(modifier, ref health, ref shield, ref attack, sources);
+            return new RobotStatSummary(Math.Max(1, health), Math.Max(0, shield), Math.Max(0, attack), sources);
         }
 
-        private static void Apply(RobotModuleDefinition module, ref int health, ref int armor, ref int attack,
+        private static void Apply(RobotModuleDefinition module, ref int health, ref int shield, ref int attack,
             ICollection<string> sources)
         {
             if (module == null) return;
             health += module.HealthModifier;
-            armor += module.ArmorModifier;
+            shield += module.ShieldModifier;
             attack += module.AttackModifier;
             sources.Add($"{module.SlotType}: {module.DisplayName} (Lv.{module.Level} {module.Rarity})");
         }

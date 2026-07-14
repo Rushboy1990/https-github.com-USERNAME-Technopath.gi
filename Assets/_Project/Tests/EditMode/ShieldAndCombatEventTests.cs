@@ -5,23 +5,23 @@ using Technopath.Combat.Rules;
 
 namespace Technopath.Tests.EditMode
 {
-    public sealed class ArmorAndCombatEventTests
+    public sealed class ShieldAndCombatEventTests
     {
         [Test]
-        public void Damage_IsAbsorbedByArmorBeforeHealth()
+        public void Damage_IsAbsorbedByShieldBeforeHealth()
         {
-            var unit = new CombatUnitState("robot", BoardSide.Player, health: 10, attackDamage: 2, maxArmor: 3);
+            var unit = new CombatUnitState("robot", BoardSide.Player, health: 10, attackDamage: 2, maxShield: 3);
 
             var result = unit.TakeDamage(5);
 
-            Assert.That(result.AbsorbedByArmor, Is.EqualTo(3));
+            Assert.That(result.AbsorbedByShield, Is.EqualTo(3));
             Assert.That(result.HealthDamage, Is.EqualTo(2));
-            Assert.That(unit.Armor, Is.Zero);
+            Assert.That(unit.Shield, Is.Zero);
             Assert.That(unit.Health, Is.EqualTo(8));
         }
 
         [Test]
-        public void PlayerArmor_RestoresAtBeginningOfNewTurn_ButMutantArmorDoesNot()
+        public void PlayerShield_RestoresAtBeginningOfNewTurn()
         {
             var field = new BattlefieldModel();
             field.Player.TryOccupy(new GridPosition(0, 0), CellOccupancyKind.Unit, "robot");
@@ -33,8 +33,8 @@ namespace Technopath.Tests.EditMode
 
             turn.BeginNewTurn();
 
-            Assert.That(turn.GetUnit("robot").Armor, Is.EqualTo(3));
-            Assert.That(turn.GetUnit("mutant").Armor, Is.EqualTo(1));
+            Assert.That(turn.GetUnit("robot").Shield, Is.EqualTo(3));
+            Assert.That(turn.GetUnit("mutant").Shield, Is.EqualTo(1));
         }
 
         [Test]
@@ -77,13 +77,13 @@ namespace Technopath.Tests.EditMode
         }
 
         [Test]
-        public void AddArmor_IsCappedByMaximumArmor()
+        public void AddShield_IsCappedByMaximumShield()
         {
-            var unit = new CombatUnitState("robot", BoardSide.Player, 10, 2, maxArmor: 3);
+            var unit = new CombatUnitState("robot", BoardSide.Player, 10, 2, maxShield: 3);
             unit.TakeDamage(2);
 
-            Assert.That(unit.AddArmor(10), Is.EqualTo(2));
-            Assert.That(unit.Armor, Is.EqualTo(3));
+            Assert.That(unit.AddShield(10), Is.EqualTo(2));
+            Assert.That(unit.Shield, Is.EqualTo(3));
         }
     }
 }

@@ -4,16 +4,16 @@ namespace Technopath.Combat.Modules
 {
     public sealed class RobotStatSummary
     {
-        public RobotStatSummary(int health, int armor, int attack, IReadOnlyList<string> sources)
+        public RobotStatSummary(int health, int shield, int attack, IReadOnlyList<string> sources)
         {
             Health = health;
-            Armor = armor;
+            Shield = shield;
             Attack = attack;
             Sources = sources;
         }
 
         public int Health { get; }
-        public int Armor { get; }
+        public int Shield { get; }
         public int Attack { get; }
         public IReadOnlyList<string> Sources { get; }
     }

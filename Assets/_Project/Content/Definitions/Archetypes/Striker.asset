@@ -17,7 +17,7 @@ MonoBehaviour:
   description: Temporary iteration 5 archetype for conditional ability testing.
   role: 0
   maximumHealth: 8
-  maximumArmor: 1
+  maximumShield: 1
   autoAttackDamage: 3
   abilityName: Target Lock
   abilityRulesText: After this robot attacks, apply Target Lock. The next attack

@@ -17,10 +17,10 @@ MonoBehaviour:
   description: Temporary iteration 5 archetype for conditional ability testing.
   role: 2
   maximumHealth: 9
-  maximumArmor: 2
+  maximumShield: 2
   autoAttackDamage: 2
   abilityName: Relay Pulse
-  abilityRulesText: After this robot is moved by swap, grant 1 armor to the initiator
+  abilityRulesText: After this robot is moved by swap, grant 1 shield to the initiator
     once per phase.
   triggerMoment: 2
   eventScope: 0

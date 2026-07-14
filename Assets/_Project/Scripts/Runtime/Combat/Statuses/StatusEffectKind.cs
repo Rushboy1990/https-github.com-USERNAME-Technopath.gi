@@ -4,6 +4,6 @@ namespace Technopath.Combat.Statuses
     {
         Damage = 0,
         BonusDamageTaken = 1,
-        ArmorReduction = 2
+        ShieldReduction = 2
     }
 }

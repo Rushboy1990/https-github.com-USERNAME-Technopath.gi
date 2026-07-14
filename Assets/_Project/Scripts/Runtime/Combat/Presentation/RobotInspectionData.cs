@@ -6,7 +6,7 @@ namespace Technopath.Combat.Presentation
     public sealed class RobotInspectionData
     {
         public RobotInspectionData(string unitId, string name, string archetype, int health, int maximumHealth,
-            int armor, int maximumArmor, int attack, string autoAttack, string primaryAbility,
+            int shield, int maximumShield, int attack, string autoAttack, string primaryAbility,
             string utilityAbility, IReadOnlyList<ModifierInspectionData> modules,
             IReadOnlyList<string> statuses)
         {
@@ -15,8 +15,8 @@ namespace Technopath.Combat.Presentation
             Archetype = archetype;
             Health = health;
             MaximumHealth = maximumHealth;
-            Armor = armor;
-            MaximumArmor = maximumArmor;
+            Shield = shield;
+            MaximumShield = maximumShield;
             Attack = attack;
             AutoAttack = autoAttack;
             PrimaryAbility = primaryAbility;
@@ -30,8 +30,8 @@ namespace Technopath.Combat.Presentation
         public string Archetype { get; }
         public int Health { get; }
         public int MaximumHealth { get; }
-        public int Armor { get; }
-        public int MaximumArmor { get; }
+        public int Shield { get; }
+        public int MaximumShield { get; }
         public int Attack { get; }
         public string AutoAttack { get; }
         public string PrimaryAbility { get; }

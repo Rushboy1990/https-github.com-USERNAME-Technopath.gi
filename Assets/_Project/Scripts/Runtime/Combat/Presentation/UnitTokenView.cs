@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections;
 using Technopath.Combat.Board;
+using Technopath.Combat.Rules;
 
 namespace Technopath.Combat.Presentation
 {
@@ -14,16 +15,22 @@ namespace Technopath.Combat.Presentation
         [SerializeField] private Color robotColor = new(0.42f, 0.72f, 0.35f, 1f);
         [SerializeField] private Color mutantColor = new(0.82f, 0.28f, 0.3f, 1f);
 
+        private string _displayName;
+        private Color _baseColor;
+
         public string UnitId { get; private set; }
 
-        public void Bind(string unitId, BoardSide side, bool isTechnopath)
+        public void Bind(string unitId, BoardSide side, bool isTechnopath, string displayName)
         {
             UnitId = unitId;
             name = $"Unit_{unitId}";
+            _displayName = string.IsNullOrWhiteSpace(displayName) ? unitId : displayName;
             if (body != null)
-                body.color = side == BoardSide.Enemy ? mutantColor : isTechnopath ? technopathColor : robotColor;
-            if (label != null)
-                label.text = side == BoardSide.Enemy ? "M" : isTechnopath ? "T" : "R";
+            {
+                _baseColor = side == BoardSide.Enemy ? mutantColor : isTechnopath ? technopathColor : robotColor;
+                body.color = _baseColor;
+            }
+            UpdateVitals(0, 0, 0, 0);
         }
 
         public IEnumerator MoveTo(Vector3 destination, bool jump, float duration = 0.3f)
@@ -43,10 +50,19 @@ namespace Technopath.Combat.Presentation
             transform.position = destination;
         }
 
-        public void ShowAttackIntent(int damage)
+        public void UpdateVitals(int health, int maximumHealth, int shield, int maximumShield)
+        {
+            if (label == null) return;
+            var shieldText = maximumShield > 0 ? $"  SHD {shield}/{maximumShield}" : string.Empty;
+            label.text = maximumHealth > 0
+                ? $"{_displayName}\nHP {health}/{maximumHealth}{shieldText}"
+                : _displayName;
+        }
+
+        public void ShowAttackIntent(int damage, int targetRow, string intentName)
         {
             if (intentLabel != null)
-                intentLabel.text = $"ATK {damage}";
+                intentLabel.text = $"{intentName}\nATK {damage}  → ROW {targetRow + 1}";
         }
 
         public void HideIntent()
@@ -57,8 +73,37 @@ namespace Technopath.Combat.Presentation
 
         public void ShowArchetype(string displayName)
         {
-            if (label != null && !string.IsNullOrWhiteSpace(displayName))
-                label.text = displayName.Substring(0, 1).ToUpperInvariant();
+            if (!string.IsNullOrWhiteSpace(displayName))
+                _displayName = displayName;
+        }
+
+        public void SetActivating(bool active)
+        {
+            if (body != null)
+                body.color = active ? Color.Lerp(_baseColor, Color.white, 0.55f) : _baseColor;
+        }
+
+        public void ShowDamage(DamageResult damage)
+        {
+            if (damage == null) return;
+            StopAllCoroutines();
+            StartCoroutine(FlashDamage(damage.Killed ? new Color(1f, 0.2f, 0.2f, 1f) : Color.white));
+        }
+
+        public void ShowDestroyed()
+        {
+            if (intentLabel != null)
+                intentLabel.text = "DESTROYED";
+            if (body != null)
+                body.color = new Color(1f, 0.1f, 0.1f, 1f);
+        }
+
+        private IEnumerator FlashDamage(Color color)
+        {
+            if (body == null) yield break;
+            body.color = color;
+            yield return new WaitForSeconds(0.15f);
+            body.color = _baseColor;
         }
 
         private void Reset()

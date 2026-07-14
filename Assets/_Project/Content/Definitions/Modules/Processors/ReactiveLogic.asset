@@ -20,9 +20,9 @@ MonoBehaviour:
   level: 1
   compatibleRoles: 
   healthModifier: 2
-  armorModifier: 1
+  shieldModifier: 1
   attackModifier: 0
   abilityName: Reactive Patch
-  abilityRulesText: After this robot is damaged, restore 1 armor once per phase.
+  abilityRulesText: After this robot is damaged, restore 1 shield once per phase.
   abilityTrigger: 4
   abilityEffectValue: 1

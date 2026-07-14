@@ -49,7 +49,7 @@ namespace Technopath.Debugging
             var primary = loadout.GetPrimaryAbility();
             var utility = loadout.GetProcessorAbility();
             GUILayout.Label($"{preset.DisplayName} — {preset.Archetype.DisplayName}", _textStyle);
-            GUILayout.Label($"HP {stats.Health}  ARM {stats.Armor}  ATK {stats.Attack}", _textStyle);
+            GUILayout.Label($"HP {stats.Health}  SHD {stats.Shield}  ATK {stats.Attack}", _textStyle);
             GUILayout.Label($"Core: {loadout.Core?.DisplayName ?? "Empty"} | Primary: {primary.Name}", _textStyle);
             GUILayout.Label($"Processor: {loadout.Processor?.DisplayName ?? "Empty"} | Utility: {utility?.Name ?? "None"}", _textStyle);
             for (var index = 0; index < loadout.Modifiers.Count; index++)

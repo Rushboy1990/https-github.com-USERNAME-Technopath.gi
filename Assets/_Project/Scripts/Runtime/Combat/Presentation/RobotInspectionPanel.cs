@@ -1,6 +1,7 @@
 using System;
 using System.Text;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace Technopath.Combat.Presentation
@@ -13,8 +14,10 @@ namespace Technopath.Combat.Presentation
         [SerializeField] private Text hoverTitle;
         [SerializeField] private Text hoverHealthText;
         [SerializeField] private Image hoverHealthFill;
-        [SerializeField] private Text hoverArmorText;
-        [SerializeField] private Image hoverArmorFill;
+        [FormerlySerializedAs("hoverArmorText")]
+        [SerializeField] private Text hoverShieldText;
+        [FormerlySerializedAs("hoverArmorFill")]
+        [SerializeField] private Image hoverShieldFill;
         [SerializeField] private Text hoverDamageText;
         [SerializeField] private Text hoverAbilityText;
 
@@ -23,8 +26,10 @@ namespace Technopath.Combat.Presentation
         [SerializeField] private Text detailsTitle;
         [SerializeField] private Text detailsHealthText;
         [SerializeField] private Image detailsHealthFill;
-        [SerializeField] private Text detailsArmorText;
-        [SerializeField] private Image detailsArmorFill;
+        [FormerlySerializedAs("detailsArmorText")]
+        [SerializeField] private Text detailsShieldText;
+        [FormerlySerializedAs("detailsArmorFill")]
+        [SerializeField] private Image detailsShieldFill;
         [SerializeField] private Text detailsDamageText;
         [SerializeField] private Text detailsAutoAttack;
         [SerializeField] private Text detailsAbilityTitle;
@@ -58,7 +63,7 @@ namespace Technopath.Combat.Presentation
             hoverPanel.gameObject.SetActive(visible);
             if (!visible) return;
             FillHover(data);
-            hoverPanel.position = ClampToScreen(pointerPosition + new Vector2(18f, 18f), hoverPanel);
+            hoverPanel.position = GetTopRightTooltipPosition(pointerPosition, hoverPanel);
         }
 
         public void Pin(RobotInspectionData data)
@@ -73,9 +78,9 @@ namespace Technopath.Combat.Presentation
             detailsHealthFill.fillAmount = data.MaximumHealth > 0
                 ? Mathf.Clamp01((float)data.Health / data.MaximumHealth)
                 : 0f;
-            detailsArmorText.text = $"ARMOR   {data.Armor}/{data.MaximumArmor}";
-            detailsArmorFill.fillAmount = data.MaximumArmor > 0
-                ? Mathf.Clamp01((float)data.Armor / data.MaximumArmor)
+            detailsShieldText.text = $"SHIELD   {data.Shield}/{data.MaximumShield}";
+            detailsShieldFill.fillAmount = data.MaximumShield > 0
+                ? Mathf.Clamp01((float)data.Shield / data.MaximumShield)
                 : 0f;
             detailsDamageText.text = $"AUTOATTACK   {data.Attack}";
             detailsAutoAttack.text = data.AutoAttack;
@@ -99,7 +104,7 @@ namespace Technopath.Combat.Presentation
             if (string.IsNullOrWhiteSpace(content)) return;
             tooltipText.text = content;
             tooltipPanel.gameObject.SetActive(true);
-            tooltipPanel.position = ClampToScreen(pointerPosition + new Vector2(-tooltipPanel.rect.width - 18f, 18f), tooltipPanel);
+            tooltipPanel.position = GetTopRightTooltipPosition(pointerPosition, tooltipPanel);
             tooltipPanel.SetAsLastSibling();
         }
 
@@ -116,7 +121,7 @@ namespace Technopath.Combat.Presentation
         private static void FillShared(RobotInspectionData data, Text title, Text stats, Text autoAttack, Text primary)
         {
             title.text = $"{data.Name} — {data.Archetype}";
-            stats.text = $"HP {data.Health}/{data.MaximumHealth}   ARM {data.Armor}/{data.MaximumArmor}   ATK {data.Attack}";
+            stats.text = $"HP {data.Health}/{data.MaximumHealth}   SHD {data.Shield}/{data.MaximumShield}   ATK {data.Attack}";
             autoAttack.text = data.AutoAttack;
             primary.text = data.PrimaryAbility;
         }
@@ -126,8 +131,8 @@ namespace Technopath.Combat.Presentation
             hoverTitle.text = $"{data.Name} — {data.Archetype}";
             hoverHealthText.text = $"HP     {data.Health}/{data.MaximumHealth}";
             hoverHealthFill.fillAmount = data.MaximumHealth > 0 ? Mathf.Clamp01((float)data.Health / data.MaximumHealth) : 0f;
-            hoverArmorText.text = $"ARMOR  {data.Armor}/{data.MaximumArmor}";
-            hoverArmorFill.fillAmount = data.MaximumArmor > 0 ? Mathf.Clamp01((float)data.Armor / data.MaximumArmor) : 0f;
+            hoverShieldText.text = $"SHIELD  {data.Shield}/{data.MaximumShield}";
+            hoverShieldFill.fillAmount = data.MaximumShield > 0 ? Mathf.Clamp01((float)data.Shield / data.MaximumShield) : 0f;
             hoverDamageText.text = $"DAMAGE  {data.Attack}";
             hoverAbilityText.text = string.IsNullOrWhiteSpace(data.PrimaryAbility) ? "No primary ability" : data.PrimaryAbility;
         }
@@ -165,13 +170,26 @@ namespace Technopath.Combat.Presentation
             description = ability[(separator + 1)..].Trim();
         }
 
+        private static Vector2 GetTopRightTooltipPosition(Vector2 pointerPosition, RectTransform panel)
+        {
+            const float margin = 32f;
+            var size = panel.rect.size;
+            var pivot = panel.pivot;
+            var position = pointerPosition + new Vector2(
+                margin + size.x * pivot.x,
+                margin + size.y * pivot.y);
+
+            return ClampToScreen(position, panel);
+        }
+
         private static Vector2 ClampToScreen(Vector2 position, RectTransform panel)
         {
-            var width = panel.rect.width;
-            var height = panel.rect.height;
+            const float padding = 8f;
+            var size = panel.rect.size;
+            var pivot = panel.pivot;
             return new Vector2(
-                Mathf.Clamp(position.x, 8f, Screen.width - width - 8f),
-                Mathf.Clamp(position.y, height + 8f, Screen.height - 8f));
+                Mathf.Clamp(position.x, padding + size.x * pivot.x, Screen.width - padding - size.x * (1f - pivot.x)),
+                Mathf.Clamp(position.y, padding + size.y * pivot.y, Screen.height - padding - size.y * (1f - pivot.y)));
         }
 
         private void OnDestroy()
@@ -183,9 +201,9 @@ namespace Technopath.Combat.Presentation
         private void ValidateReferences()
         {
             if (hoverPanel == null || hoverTitle == null || hoverHealthText == null || hoverHealthFill == null ||
-                hoverArmorText == null || hoverArmorFill == null || hoverDamageText == null || hoverAbilityText == null ||
+                hoverShieldText == null || hoverShieldFill == null || hoverDamageText == null || hoverAbilityText == null ||
                 detailsPanel == null || detailsTitle == null || detailsHealthText == null || detailsHealthFill == null ||
-                detailsArmorText == null || detailsArmorFill == null || detailsDamageText == null ||
+                detailsShieldText == null || detailsShieldFill == null || detailsDamageText == null ||
                 detailsAutoAttack == null || detailsAbilityTitle == null || detailsPrimaryAbility == null || detailsUtilityAbility == null ||
                 statusesText == null || modulesRoot == null || moduleItemPrefab == null || closeButton == null ||
                 tooltipPanel == null || tooltipText == null)

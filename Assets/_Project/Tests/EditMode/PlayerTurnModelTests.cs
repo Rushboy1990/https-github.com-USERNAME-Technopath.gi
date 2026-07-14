@@ -19,7 +19,7 @@ namespace Technopath.Tests.EditMode
             Assert.That(result.Attacks, Has.Count.EqualTo(1));
             Assert.That(result.Attacks[0].TargetId, Is.EqualTo("mutant-near"));
             Assert.That(turn.GetUnit("mutant-near").Health, Is.EqualTo(6));
-            Assert.That(turn.GetUnit("mutant-near").Armor, Is.Zero);
+            Assert.That(turn.GetUnit("mutant-near").Shield, Is.Zero);
         }
 
         [Test]

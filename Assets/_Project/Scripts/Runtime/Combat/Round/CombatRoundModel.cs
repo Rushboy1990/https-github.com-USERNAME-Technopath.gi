@@ -27,7 +27,10 @@ namespace Technopath.Combat.Round
         {
             Battlefield = battlefield;
             _profiles = profiles;
-            PlayerTurn = new PlayerTurnModel(battlefield, PlayerTurnModel.StartingActionPoints, archetypes, loadouts, initialHealth);
+            var enemySetups = profiles.ToDictionary(profile => profile.UnitId,
+                profile => new CombatUnitSetup(profile.MaximumHealth, profile.AttackDamage, profile.MaximumShield));
+            PlayerTurn = new PlayerTurnModel(battlefield, PlayerTurnModel.StartingActionPoints, archetypes, loadouts,
+                initialHealth, enemySetups);
             Phase = CombatPhase.PreparingIntents;
             PrepareIntents(seed);
             Phase = CombatPhase.PlayerTurn;
@@ -54,6 +57,7 @@ namespace Technopath.Combat.Round
 
             var results = _resolver.Resolve(Battlefield, PlayerTurn, _intents);
             Phase = CombatPhase.CompletingRound;
+            PlayerTurn.RestoreShields(BoardSide.Enemy);
             if (!PlayerTurn.IsAlive(StartingFormationFactory.TechnopathId))
                 Phase = CombatPhase.Defeat;
             else if (!Battlefield.Enemy.Cells.Any(cell => cell.Occupancy == CellOccupancyKind.Unit))

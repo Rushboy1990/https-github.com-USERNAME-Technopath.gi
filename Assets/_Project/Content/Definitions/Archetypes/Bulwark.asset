@@ -17,10 +17,10 @@ MonoBehaviour:
   description: Temporary iteration 5 archetype for conditional ability testing.
   role: 1
   maximumHealth: 12
-  maximumArmor: 5
+  maximumShield: 5
   autoAttackDamage: 1
   abilityName: Interpose
-  abilityRulesText: After a player unit is damaged, restore 1 armor to it once per
+  abilityRulesText: After a player unit is damaged, restore 1 shield to it once per
     phase.
   triggerMoment: 4
   eventScope: 1

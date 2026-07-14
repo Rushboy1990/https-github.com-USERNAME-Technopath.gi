@@ -10,6 +10,12 @@ namespace Technopath.Run
         private readonly List<RobotModuleDefinition> _moduleInventory = new();
         private readonly List<CampRobotState> _robots = new();
 
+        public RunState(RunStartConfiguration startConfiguration = null)
+        {
+            StartConfiguration = startConfiguration ?? new RunStartConfiguration(StartingCrewId.Rustwalker, 1);
+        }
+
+        public RunStartConfiguration StartConfiguration { get; }
         public int Parts { get; private set; }
         public int TechnopathHealth { get; private set; } = 10;
         public int TechnopathMaximumHealth { get; private set; } = 10;

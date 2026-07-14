@@ -20,5 +20,9 @@ MonoBehaviour:
   level: 1
   compatibleRoles: 
   healthModifier: 1
-  armorModifier: 1
+  shieldModifier: 1
   attackModifier: 0
+  abilityName: 
+  abilityRulesText: 
+  abilityTrigger: 0
+  abilityEffectValue: 0

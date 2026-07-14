@@ -124,7 +124,7 @@ namespace Technopath.Run.Presentation
             GUILayout.BeginArea(rect, GUIContent.none, _panel);
             var stats = _selected.Loadout.CalculateStats();
             GUILayout.Label($"{_selected.Id} — {_selected.Loadout.Archetype.DisplayName}", _title);
-            GUILayout.Label($"HP {_selected.Health}/{_selected.MaxHealth}   ARM {stats.Armor}   ATK {stats.Attack}", _text);
+            GUILayout.Label($"HP {_selected.Health}/{_selected.MaxHealth}   SHD {stats.Shield}   ATK {stats.Attack}", _text);
             GUILayout.BeginHorizontal();
             DrawSlot("CORE", ModuleSlotType.Core, 0);
             DrawSlot("PROCESSOR", ModuleSlotType.Processor, 0);
@@ -198,7 +198,7 @@ namespace Technopath.Run.Presentation
             for (var index = 0; index < 3; index++)
             {
                 var archetype = _archetypes[index];
-                if (GUILayout.Button($"{archetype.DisplayName}\nHP {archetype.MaximumHealth}\nARM {archetype.MaximumArmor}\nATK {archetype.AutoAttackDamage}\n\n{archetype.AbilityName}", GUILayout.Height(150)))
+                if (GUILayout.Button($"{archetype.DisplayName}\nHP {archetype.MaximumHealth}\nARM {archetype.MaximumShield}\nATK {archetype.AutoAttackDamage}\n\n{archetype.AbilityName}", GUILayout.Height(150)))
                 {
                     _run.AddParts(50);
                     _selected = _run.BuildRobot($"robot-{_nextRobotNumber++}", archetype, 50);

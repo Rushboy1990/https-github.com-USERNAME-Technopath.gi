@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Technopath.Combat.Archetypes
 {
@@ -13,7 +14,8 @@ namespace Technopath.Combat.Archetypes
 
         [Header("Base stats")]
         [SerializeField, Min(1)] private int maximumHealth = 10;
-        [SerializeField, Min(0)] private int maximumArmor = 3;
+        [FormerlySerializedAs("maximumArmor")]
+        [SerializeField, Min(0)] private int maximumShield = 3;
         [SerializeField, Min(0)] private int autoAttackDamage = 2;
 
         [Header("Conditional main ability")]
@@ -29,7 +31,7 @@ namespace Technopath.Combat.Archetypes
         public string Description => description;
         public ArchetypeRole Role => role;
         public int MaximumHealth => maximumHealth;
-        public int MaximumArmor => maximumArmor;
+        public int MaximumShield => maximumShield;
         public int AutoAttackDamage => autoAttackDamage;
         public string AbilityName => abilityName;
         public string AbilityRulesText => abilityRulesText;

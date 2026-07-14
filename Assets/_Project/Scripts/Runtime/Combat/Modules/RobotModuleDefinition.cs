@@ -1,5 +1,6 @@
 using Technopath.Combat.Archetypes;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Technopath.Combat.Modules
 {
@@ -19,7 +20,8 @@ namespace Technopath.Combat.Modules
 
         [Header("Stat changes")]
         [SerializeField] private int healthModifier;
-        [SerializeField] private int armorModifier;
+        [FormerlySerializedAs("armorModifier")]
+        [SerializeField] private int shieldModifier;
         [SerializeField] private int attackModifier;
 
         [Header("Optional conditional ability")]
@@ -35,7 +37,7 @@ namespace Technopath.Combat.Modules
         public ModuleRarity Rarity => rarity;
         public int Level => level;
         public int HealthModifier => healthModifier;
-        public int ArmorModifier => armorModifier;
+        public int ShieldModifier => shieldModifier;
         public int AttackModifier => attackModifier;
         public string AbilityName => abilityName;
         public string AbilityRulesText => abilityRulesText;

@@ -19,11 +19,11 @@ namespace Technopath.Combat.Archetypes
                 case ArchetypeRole.Defender when !string.IsNullOrEmpty(sourceEvent.TargetId):
                     if (!combatState.TryGetUnit(sourceEvent.TargetId, out var damaged) || damaged.Side != BoardSide.Player)
                         return false;
-                    combatState.AddArmor(sourceEvent.TargetId, activation.EffectValue);
+                    combatState.AddShield(sourceEvent.TargetId, activation.EffectValue);
                     return true;
                 case ArchetypeRole.Support when sourceEvent.TargetId == activation.UnitId &&
                                                  !string.IsNullOrEmpty(sourceEvent.SourceId):
-                    combatState.AddArmor(sourceEvent.SourceId, activation.EffectValue);
+                    combatState.AddShield(sourceEvent.SourceId, activation.EffectValue);
                     return true;
                 default:
                     return false;

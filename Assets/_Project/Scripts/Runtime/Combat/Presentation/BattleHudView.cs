@@ -35,8 +35,8 @@ namespace Technopath.Combat.Presentation
 
         private static string FormatPhase(string phase) => phase switch
         {
-            "PlayerTurn" => "PLAYER TURN",
-            "MutantTurn" => "ENEMY TURN",
+            "PlayerTurn" => "PLAYER TURN — MOVE A UNIT TO FIRE ITS ROW",
+            "MutantTurn" => "ENEMY TURN — RESOLVING VISIBLE INTENTS",
             _ => phase.ToUpperInvariant()
         };
 
