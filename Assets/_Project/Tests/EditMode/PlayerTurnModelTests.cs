@@ -1,6 +1,10 @@
+using System.Collections.Generic;
+using System.Reflection;
 using NUnit.Framework;
+using Technopath.Combat.Archetypes;
 using Technopath.Combat.Board;
 using Technopath.Combat.Rules;
+using UnityEngine;
 
 namespace Technopath.Tests.EditMode
 {
@@ -74,6 +78,31 @@ namespace Technopath.Tests.EditMode
         }
 
         [Test]
+        public void AccumulatorFinishAttack_UsesAbilityEffectValue()
+        {
+            var field = new BattlefieldModel();
+            field.Player.TryOccupy(new GridPosition(0, 0), CellOccupancyKind.Unit, "accumulator");
+            field.Enemy.TryOccupy(new GridPosition(2, 0), CellOccupancyKind.Unit, "mutant");
+            var ability = ScriptableObject.CreateInstance<CombatAbilityDefinition>();
+            SetPrivateField(ability, "effectValue", 7);
+            SetPrivateField(ability, "abilityKind", RobotAbilityKind.MomentumBarrage);
+            var archetype = ScriptableObject.CreateInstance<RobotArchetypeDefinition>();
+            SetPrivateField(archetype, "abilityKind", RobotAbilityKind.MomentumBarrage);
+            SetPrivateField(archetype, "abilityDefinition", ability);
+            SetPrivateField(archetype, "autoAttackDamage", 1);
+            var archetypes = new Dictionary<string, RobotArchetypeDefinition> { ["accumulator"] = archetype };
+            var enemies = new Dictionary<string, CombatUnitSetup> { ["mutant"] = new(50, 1, 0) };
+            var turn = new PlayerTurnModel(field, 3, archetypes, null, null, enemies);
+
+            turn.Move(new GridPosition(0, 0), new GridPosition(0, 1));
+            turn.FinishTurn();
+
+            Assert.That(turn.GetUnit("mutant").Health, Is.EqualTo(43));
+            Object.DestroyImmediate(archetype);
+            Object.DestroyImmediate(ability);
+        }
+
+        [Test]
         public void NewTurn_RestoresActionPointsAndIndependentActivations()
         {
             var field = CreateField();
@@ -95,6 +124,13 @@ namespace Technopath.Tests.EditMode
             field.Enemy.TryOccupy(new GridPosition(0, 2), CellOccupancyKind.Unit, "mutant-far");
             field.Enemy.TryOccupy(new GridPosition(1, 1), CellOccupancyKind.Unit, "mutant-middle");
             return field;
+        }
+
+        private static void SetPrivateField<T>(object target, string name, T value)
+        {
+            var field = target.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(field, Is.Not.Null, $"Missing private field: {name}");
+            field.SetValue(target, value);
         }
     }
 }

@@ -9,6 +9,7 @@ namespace Technopath.Run
     {
         private readonly List<RobotModuleDefinition> _moduleInventory = new();
         private readonly List<CampRobotState> _robots = new();
+        private bool _technopathConfigured;
 
         public RunState(RunStartConfiguration startConfiguration = null)
         {
@@ -39,10 +40,26 @@ namespace Technopath.Run
 
         public void SetPhase(RunPhase phase) => Phase = phase;
 
+        public void ConfigureTechnopath(int maximumHealth)
+        {
+            maximumHealth = Math.Max(1, maximumHealth);
+            if (_technopathConfigured)
+            {
+                if (TechnopathMaximumHealth != maximumHealth)
+                    throw new InvalidOperationException("Technopath definition cannot change during an active run.");
+                return;
+            }
+
+            TechnopathMaximumHealth = maximumHealth;
+            TechnopathHealth = maximumHealth;
+            _technopathConfigured = true;
+        }
+
         public void SetTechnopathHealth(int health, int maximumHealth)
         {
             TechnopathMaximumHealth = Math.Max(1, maximumHealth);
             TechnopathHealth = Math.Clamp(health, 0, TechnopathMaximumHealth);
+            _technopathConfigured = true;
         }
 
         public int RestoreTechnopathPercent(int percent)

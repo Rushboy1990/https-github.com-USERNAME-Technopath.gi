@@ -6,6 +6,7 @@ namespace Technopath.Combat.Events
         Movement = 10,
         Swap = 20,
         Attack = 30,
+        StatusTriggered = 35,
         Damage = 40,
         Kill = 50,
         Destroyed = 60,

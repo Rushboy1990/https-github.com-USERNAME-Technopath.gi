@@ -9,6 +9,7 @@ using Technopath.Combat.Events;
 using Technopath.Combat.Archetypes;
 using Technopath.Combat.Statuses;
 using Technopath.Combat.Modules;
+using Technopath.Combat.Content;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Technopath.Run;
@@ -26,7 +27,9 @@ namespace Technopath.Combat.Presentation
         [SerializeField] private Transform unitsRoot;
         [SerializeField] private AttackTraceView attackTracePrefab;
         [SerializeField] private int formationSeed = 1701;
+        [SerializeField] private TechnopathDefinition technopathDefinition;
         [SerializeField] private RobotArchetypeDefinition[] testArchetypes = Array.Empty<RobotArchetypeDefinition>();
+        [SerializeField] private MutantDefinition[] testMutants = Array.Empty<MutantDefinition>();
         [SerializeField] private RobotLoadoutPresetDefinition[] testLoadoutPresets = Array.Empty<RobotLoadoutPresetDefinition>();
         [SerializeField] private RobotInspectionPanel inspectionPanel;
         [Header("Victory reward prototype")]
@@ -43,9 +46,7 @@ namespace Technopath.Combat.Presentation
         private CombatRoundModel _combat;
         private GridCellView _selectedSource;
         private bool _isAnimating;
-        private readonly ConditionalAbilityEngine _abilityEngine = new();
-        private readonly AbilityEffectResolver _abilityEffects = new();
-        private readonly StatusCollection _statuses = new();
+        private CombatAbilityRuntime _abilityRuntime;
         private readonly Dictionary<string, RobotArchetypeDefinition> _unitArchetypes = new();
         private readonly Dictionary<string, RobotLoadout> _unitLoadouts = new();
         private readonly Dictionary<string, MutantProfile> _mutantProfiles = new();
@@ -68,6 +69,9 @@ namespace Technopath.Combat.Presentation
         private void Awake()
         {
             ValidateReferences();
+            var debugMenu = GetComponent<CombatDebugSpawnMenu>();
+            if (debugMenu == null) debugMenu = gameObject.AddComponent<CombatDebugSpawnMenu>();
+            debugMenu.Initialize(this, testArchetypes);
             EnsureRunSession();
             InitializeCells(playerCells, BoardSide.Player);
             InitializeCells(enemyCells, BoardSide.Enemy);
@@ -156,10 +160,34 @@ namespace Technopath.Combat.Presentation
             ShowVictoryReward();
         }
 
+        public void TryDebugSpawn(RobotArchetypeDefinition archetype)
+        {
+            for (var index = 0; index < GridPosition.Size * GridPosition.Size; index++)
+            {
+                var position = new GridPosition(index / GridPosition.Size, index % GridPosition.Size);
+                if (!_battlefield.Player[position].IsEmpty) continue;
+                var id = $"debug-{archetype.Id}-{Guid.NewGuid():N}";
+                if (!_turn.TrySpawnPlayerUnit(id, archetype, position)) return;
+                _unitArchetypes.Add(id, archetype);
+                var loadout = new RobotLoadout(archetype);
+                _unitLoadouts.Add(id, loadout);
+                _abilityRuntime.RegisterUnit(id, archetype, loadout);
+                var token = Instantiate(unitPrefab, GetCell(BoardSide.Player, position).transform.position,
+                    Quaternion.identity, unitsRoot);
+                token.Bind(id, BoardSide.Player, false, archetype.DisplayName);
+                var unit = _turn.GetUnit(id);
+                token.UpdateVitals(unit.Health, unit.MaxHealth, unit.Shield, unit.MaxShield);
+                _unitViews.Add(id, token);
+                RecordLog($"DEBUG SPAWN: {archetype.DisplayName}.");
+                return;
+            }
+            RecordLog("DEBUG SPAWN: no free player cell.");
+        }
+
         private IEnumerator PerformMove(GridCellView source, GridCellView destination)
         {
             _isAnimating = true;
-            _abilityEngine.BeginAction();
+            _abilityRuntime.BeginAction();
             var initiatorId = _battlefield.Player[source.Position].OccupantId;
             var displacedId = _battlefield.Player[destination.Position].OccupantId;
             var result = _turn.Move(source.Position, destination.Position);
@@ -208,12 +236,7 @@ namespace Technopath.Combat.Presentation
             foreach (var robot in _runState.Robots) robotIds.Add(robot.Id);
             _battlefield = StartingFormationFactory.Create(battleSeed, robotIds);
             var mutantDamageBonus = encounter.Kind == RunEncounterKind.Boss ? 2 : encounter.Kind == RunEncounterKind.Elite ? 1 : 0;
-            var profiles = new List<MutantProfile>
-            {
-                new("mutant-1", 10, 1 + mutantDamageBonus, "Skitter", "Scout strike", 4, 0),
-                new("mutant-2", 20, 2 + mutantDamageBonus, "Brute", "Crushing strike", 9, 2),
-                new("mutant-3", 30, 3 + mutantDamageBonus, "Spitter", "Corrosive strike", 6, 1)
-            };
+            var profiles = BuildMutantProfiles(mutantDamageBonus);
             foreach (var profile in profiles)
                 _mutantProfiles.Add(profile.UnitId, profile);
             var archetypes = new Dictionary<string, RobotArchetypeDefinition>();
@@ -228,13 +251,13 @@ namespace Technopath.Combat.Presentation
                 initialHealth.Add(robot.Id, robot.Health);
             }
             foreach (var entry in archetypes)
-            {
                 _unitArchetypes.Add(entry.Key, entry.Value);
-                _abilityEngine.Register(entry.Key, entry.Value);
-            }
-            _abilityEngine.BeginPhase();
-            _combat = new CombatRoundModel(_battlefield, profiles, battleSeed, archetypes, _unitLoadouts, initialHealth);
+            _combat = new CombatRoundModel(_battlefield, profiles, battleSeed, archetypes, _unitLoadouts,
+                initialHealth, technopathDefinition.CreateSetup());
             _turn = _combat.PlayerTurn;
+            _abilityRuntime = new CombatAbilityRuntime(_battlefield, _turn, archetypes, _unitLoadouts, battleSeed);
+            _abilityRuntime.BeginPhase();
+            AppendDetailedEvents();
             SpawnGridUnits(_battlefield.Player);
             SpawnGridUnits(_battlefield.Enemy);
             ShowIntents();
@@ -281,7 +304,7 @@ namespace Technopath.Combat.Presentation
 
             if (_combat.Phase == CombatPhase.PlayerTurn)
             {
-                _abilityEngine.BeginPhase();
+                _abilityRuntime.BeginPhase();
                 RefreshUnitVitals();
                 ShowIntents();
                 RecordLog($"Round {_combat.RoundNumber} started. Mutant and player shields restored.");
@@ -334,9 +357,15 @@ namespace Technopath.Combat.Presentation
 
         private void RefreshUnitVitals()
         {
-            foreach (var entry in _unitViews)
+            foreach (var entry in new List<KeyValuePair<string, UnitTokenView>>(_unitViews))
             {
                 if (!_turn.TryGetUnit(entry.Key, out var unit)) continue;
+                if (!unit.IsAlive)
+                {
+                    _unitViews.Remove(entry.Key);
+                    Destroy(entry.Value.gameObject);
+                    continue;
+                }
                 entry.Value.UpdateVitals(unit.Health, unit.MaxHealth, unit.Shield, unit.MaxShield);
             }
         }
@@ -360,7 +389,7 @@ namespace Technopath.Combat.Presentation
 
         private string GetUnitDisplayName(string unitId, BoardSide side, bool isTechnopath)
         {
-            if (isTechnopath) return "TECHNOPATH";
+            if (isTechnopath) return technopathDefinition.DisplayName;
             if (side == BoardSide.Enemy && _mutantProfiles.TryGetValue(unitId, out var profile)) return profile.DisplayName;
             return _unitArchetypes.TryGetValue(unitId, out var archetype) ? archetype.DisplayName : unitId;
         }
@@ -390,6 +419,25 @@ namespace Technopath.Combat.Presentation
                 ["robot-2"] = unique[1],
                 ["robot-3"] = unique[2]
             };
+        }
+
+        private List<MutantProfile> BuildMutantProfiles(int damageBonus)
+        {
+            var profiles = new List<MutantProfile>();
+            for (var index = 0; index < testMutants.Length && profiles.Count < 3; index++)
+            {
+                var definition = testMutants[index];
+                if (definition == null)
+                    continue;
+
+                profiles.Add(definition.CreateProfile($"mutant-{profiles.Count + 1}", (profiles.Count + 1) * 10,
+                    damageBonus));
+            }
+
+            if (profiles.Count < 3)
+                throw new InvalidOperationException("BattlefieldPresenter requires at least three test mutant definitions.");
+
+            return profiles;
         }
 
         private void ShowAttackFeedback(AutoAttackResult attack)
@@ -480,7 +528,7 @@ namespace Technopath.Combat.Presentation
                 }
             }
             var statuses = new List<string>();
-            foreach (var status in _statuses.GetActive(unitId))
+            foreach (var status in _abilityRuntime.GetActiveStatuses(unitId))
                 statuses.Add($"{status.Id}: {status.Charges} charge(s)");
 
             var primaryText = primary != null
@@ -524,37 +572,31 @@ namespace Technopath.Combat.Presentation
         private void AppendDetailedEvents()
         {
             var builder = new StringBuilder();
-            for (var cycle = 0; cycle < 8; cycle++)
+            foreach (var entry in _abilityRuntime.ResolvePendingEvents())
             {
-                var events = _turn.Events.Drain();
-                if (events.Count == 0) break;
-                foreach (var combatEvent in events)
+                if (builder.Length > 0) builder.Append(" → ");
+                if (entry.Kind == CombatResolutionEntryKind.Event)
                 {
-                    if (builder.Length > 0) builder.Append(" → ");
+                    var combatEvent = entry.CombatEvent;
                     builder.Append(combatEvent.Kind);
                     if (!string.IsNullOrEmpty(combatEvent.SourceId)) builder.Append($"[{combatEvent.SourceId}]");
                     if (!string.IsNullOrEmpty(combatEvent.TargetId)) builder.Append($"({combatEvent.TargetId})");
                     if (combatEvent.Value != 0) builder.Append($":{combatEvent.Value}");
-
-                    if (combatEvent.Kind == CombatEventKind.Attack && !string.IsNullOrEmpty(combatEvent.TargetId) &&
-                        _statuses.TryConsume(combatEvent.TargetId, "status.target-lock", out var bonusDamage))
-                    {
-                        _turn.ApplyDamageDetailed(combatEvent.TargetId, bonusDamage);
-                        builder.Append($" → Status[target-lock]:HP/SHD -{bonusDamage}");
-                    }
-
-                    foreach (var activation in _abilityEngine.Evaluate(combatEvent))
-                    {
-                        if (_abilityEffects.Apply(activation, combatEvent, _turn, _statuses))
-                            builder.Append($" → Ability[{activation.UnitId}:{activation.Definition.AbilityName}]={activation.EffectValue}");
-                    }
+                }
+                else if (entry.Kind == CombatResolutionEntryKind.Status)
+                {
+                    builder.Append($"Status[{entry.StatusId}]({entry.TargetId}):{entry.Value}");
+                }
+                else
+                {
+                    builder.Append($"Ability[{entry.UnitId}:{entry.SourceLabel}:{entry.AbilityName}]={entry.Value}");
+                    if (!string.IsNullOrEmpty(entry.TargetId)) builder.Append($"({entry.TargetId})");
                 }
             }
-            if (builder.Length > 0)
-            {
-                DetailedCombatLog = builder.ToString();
-                RecordLog($"Events: {DetailedCombatLog}");
-            }
+            if (builder.Length == 0) return;
+            DetailedCombatLog = builder.ToString();
+            RecordLog($"Events: {DetailedCombatLog}");
+            RefreshUnitVitals();
         }
 
         private void RecordLog(string message)
@@ -623,6 +665,7 @@ namespace Technopath.Combat.Presentation
         {
             _runFlow = RunSession.IsActive ? RunSession.Flow : RunSession.StartNew(formationSeed);
             _runState = _runFlow.State;
+            _runState.ConfigureTechnopath(technopathDefinition.MaximumHealth);
             if (_runState.Robots.Count > 0) return;
 
             foreach (var entry in BuildStartingLoadouts())
@@ -684,6 +727,8 @@ namespace Technopath.Combat.Presentation
         {
             if (playerCells.Length != 9 || enemyCells.Length != 9)
                 throw new InvalidOperationException("BattlefieldPresenter requires exactly nine cells for each side.");
+            if (technopathDefinition == null)
+                throw new InvalidOperationException("BattlefieldPresenter requires a Technopath definition.");
             if (unitPrefab == null || unitsRoot == null || attackTracePrefab == null || inspectionPanel == null || victoryRewardPanel == null)
                 throw new InvalidOperationException("BattlefieldPresenter prefab and units root references are required.");
             if (string.IsNullOrWhiteSpace(restStopScenePath))
@@ -692,6 +737,8 @@ namespace Technopath.Combat.Presentation
                 throw new InvalidOperationException("BattlefieldPresenter reward module pool cannot be empty.");
             if (testArchetypes.Length < 3)
                 throw new InvalidOperationException("BattlefieldPresenter requires at least three test archetype definitions.");
+            if (testMutants.Length < 3)
+                throw new InvalidOperationException("BattlefieldPresenter requires at least three test mutant definitions.");
         }
     }
 }

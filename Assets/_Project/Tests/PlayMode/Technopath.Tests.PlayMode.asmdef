@@ -1,0 +1,13 @@
+{
+  "name": "Technopath.Tests.PlayMode",
+  "rootNamespace": "Technopath.Tests.PlayMode",
+  "references": [
+    "Technopath.Runtime",
+    "Unity.InputSystem",
+    "Unity.InputSystem.TestFramework"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ],
+  "autoReferenced": false
+}

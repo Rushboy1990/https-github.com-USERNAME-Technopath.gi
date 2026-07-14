@@ -11,6 +11,7 @@ namespace Technopath.Combat.Statuses
         [SerializeField] private StatusEffectKind effectKind;
         [SerializeField] private StatusTickMoment tickMoment;
         [SerializeField, Min(0)] private int valuePerCharge = 1;
+        [SerializeField, Min(0)] private int maximumCharges;
 
         public string Id => id;
         public string DisplayName => displayName;
@@ -18,6 +19,7 @@ namespace Technopath.Combat.Statuses
         public StatusEffectKind EffectKind => effectKind;
         public StatusTickMoment TickMoment => tickMoment;
         public int ValuePerCharge => valuePerCharge;
+        public int MaximumCharges => maximumCharges;
 
         private void OnValidate()
         {

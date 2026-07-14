@@ -38,6 +38,28 @@ namespace Technopath.Tests.EditMode
         }
 
         [Test]
+        public void DamageEvent_ReportsOnlyHealthDamage()
+        {
+            var field = new BattlefieldModel();
+            field.Player.TryOccupy(new GridPosition(0, 0), CellOccupancyKind.Unit, "robot");
+            var turn = new PlayerTurnModel(field);
+            turn.Events.Clear();
+
+            turn.ApplyDamageDetailed("robot", 1);
+            CombatEvent damageEvent = null;
+            foreach (var combatEvent in turn.Events.Drain())
+            {
+                if (combatEvent.Kind == CombatEventKind.Damage)
+                {
+                    damageEvent = combatEvent;
+                    break;
+                }
+            }
+
+            Assert.That(damageEvent.Value, Is.Zero);
+        }
+
+        [Test]
         public void EventQueue_RejectsUnboundedReactionChain()
         {
             var queue = new CombatEventQueue(maximumEventsPerChain: 2);

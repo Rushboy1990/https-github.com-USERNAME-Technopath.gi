@@ -52,5 +52,13 @@ namespace Technopath.Combat.Rules
             Shield = System.Math.Min(MaxShield, Shield + amount);
             return Shield - previous;
         }
+
+        public int RemoveShield(int amount)
+        {
+            if (amount < 0) throw new System.ArgumentOutOfRangeException(nameof(amount));
+            var removed = System.Math.Min(Shield, amount);
+            Shield -= removed;
+            return removed;
+        }
     }
 }

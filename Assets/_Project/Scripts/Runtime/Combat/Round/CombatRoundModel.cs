@@ -23,14 +23,21 @@ namespace Technopath.Combat.Round
         public CombatRoundModel(BattlefieldModel battlefield, IReadOnlyList<MutantProfile> profiles, int seed,
             IReadOnlyDictionary<string, RobotArchetypeDefinition> archetypes,
             IReadOnlyDictionary<string, RobotLoadout> loadouts,
-            IReadOnlyDictionary<string, int> initialHealth = null)
+            IReadOnlyDictionary<string, int> initialHealth = null,
+            CombatUnitSetup technopathSetup = null)
         {
             Battlefield = battlefield;
             _profiles = profiles;
             var enemySetups = profiles.ToDictionary(profile => profile.UnitId,
                 profile => new CombatUnitSetup(profile.MaximumHealth, profile.AttackDamage, profile.MaximumShield));
+            IReadOnlyDictionary<string, CombatUnitSetup> playerSetups = technopathSetup == null
+                ? null
+                : new Dictionary<string, CombatUnitSetup>
+                {
+                    [StartingFormationFactory.TechnopathId] = technopathSetup
+                };
             PlayerTurn = new PlayerTurnModel(battlefield, PlayerTurnModel.StartingActionPoints, archetypes, loadouts,
-                initialHealth, enemySetups);
+                initialHealth, enemySetups, seed, playerSetups);
             Phase = CombatPhase.PreparingIntents;
             PrepareIntents(seed);
             Phase = CombatPhase.PlayerTurn;
@@ -48,6 +55,7 @@ namespace Technopath.Combat.Round
                 throw new System.InvalidOperationException("Player phase is not active.");
             PlayerTurn.FinishTurn();
             Phase = CombatPhase.MutantTurn;
+            PlayerTurn.ResolveStatusPhaseStart(BoardSide.Enemy);
         }
 
         public IReadOnlyList<MutantActionResult> ResolveMutantTurn(int nextIntentSeed)
@@ -57,6 +65,9 @@ namespace Technopath.Combat.Round
 
             var results = _resolver.Resolve(Battlefield, PlayerTurn, _intents);
             Phase = CombatPhase.CompletingRound;
+            PlayerTurn.ResolveStatusPhaseEnd(BoardSide.Enemy,
+                results.Where(result => result.Destination.HasValue)
+                    .Select(result => result.MutantId).ToHashSet());
             PlayerTurn.RestoreShields(BoardSide.Enemy);
             if (!PlayerTurn.IsAlive(StartingFormationFactory.TechnopathId))
                 Phase = CombatPhase.Defeat;
@@ -67,7 +78,9 @@ namespace Technopath.Combat.Round
                 RoundNumber++;
                 PrepareIntents(nextIntentSeed);
                 PlayerTurn.BeginNewTurn();
-                Phase = CombatPhase.PlayerTurn;
+                Phase = PlayerTurn.IsAlive(StartingFormationFactory.TechnopathId)
+                    ? CombatPhase.PlayerTurn
+                    : CombatPhase.Defeat;
             }
             return results;
         }

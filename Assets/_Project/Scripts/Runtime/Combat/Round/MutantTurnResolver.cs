@@ -15,7 +15,7 @@ namespace Technopath.Combat.Round
             var results = new List<MutantActionResult>(intents.Count);
             foreach (var intent in intents)
             {
-                if (!combatState.IsAlive(intent.MutantId) ||
+                if (!combatState.CanUnitAct(intent.MutantId) ||
                     !battlefield.Enemy.TryFindUnit(intent.MutantId, out var origin))
                     continue;
 
@@ -27,6 +27,7 @@ namespace Technopath.Combat.Round
                     destination = intent.PlannedDestination.Value;
                     battlefield.Enemy.MoveUnit(origin, destination.Value);
                     combatState.Events.Enqueue(new CombatEvent(CombatEventKind.Movement, intent.MutantId));
+                    combatState.NotifyUnitMoved(intent.MutantId);
                 }
 
                 results.Add(new MutantActionResult(intent.MutantId, attack, origin, destination));
@@ -47,9 +48,7 @@ namespace Technopath.Combat.Round
                     continue;
 
                 var targetId = cell.OccupantId;
-                combatState.Events.Enqueue(new CombatEvent(CombatEventKind.Attack, intent.MutantId, targetId, intent.AttackDamage));
-                var damageResult = combatState.ApplyDamageDetailed(targetId, intent.AttackDamage);
-                return new AutoAttackResult(intent.MutantId, targetId, intent.AttackDamage, row, damageResult);
+                return combatState.ResolveDirectAttack(intent.MutantId, targetId, intent.AttackDamage, row);
             }
             return new AutoAttackResult(intent.MutantId, null, 0, row);
         }

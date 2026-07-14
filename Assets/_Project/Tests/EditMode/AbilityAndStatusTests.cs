@@ -1,6 +1,10 @@
 using NUnit.Framework;
 using Technopath.Combat.Archetypes;
+using Technopath.Combat.Events;
+using Technopath.Combat.Modules;
 using Technopath.Combat.Statuses;
+using System.Reflection;
+using UnityEngine;
 
 namespace Technopath.Tests.EditMode
 {
@@ -81,6 +85,48 @@ namespace Technopath.Tests.EditMode
             Assert.That(results[0].StatusId, Is.EqualTo("status.wound"));
             Assert.That(results[0].Value, Is.EqualTo(4));
             Assert.That(results[0].RemainingCharges, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void ChargedStatus_ClampsChargesToDefinitionMaximum()
+        {
+            var status = new ChargedStatusState("status.force-field", charges: 2, valuePerCharge: 1,
+                StatusTickMoment.PhaseStarted, maximumCharges: 3);
+
+            status.AddCharges(5);
+
+            Assert.That(status.Charges, Is.EqualTo(3));
+            Assert.That(status.MaximumCharges, Is.EqualTo(3));
+        }
+
+        [Test]
+        public void ModuleContentAbility_TriggersForItsEquippedRobot()
+        {
+            var ability = ScriptableObject.CreateInstance<CombatAbilityDefinition>();
+            SetPrivateField(ability, "triggerMoment", AbilityTriggerMoment.UnitDamaged);
+            SetPrivateField(ability, "eventScope", AbilityEventScope.Self);
+            SetPrivateField(ability, "frequency", AbilityFrequency.EveryEvent);
+            var module = ScriptableObject.CreateInstance<RobotModuleDefinition>();
+            SetPrivateField(module, "id", "module.test-reactive");
+            SetPrivateField(module, "displayName", "Reactive test module");
+            SetPrivateField(module, "abilityDefinition", ability);
+            var engine = new ConditionalAbilityEngine();
+
+            engine.RegisterModule("robot", module, "processor");
+            var activations = engine.Evaluate(new CombatEvent(CombatEventKind.Damage, targetId: "robot", value: 1));
+
+            Assert.That(activations, Has.Count.EqualTo(1));
+            Assert.That(activations[0].Ability, Is.SameAs(ability));
+            Assert.That(activations[0].SourceLabel, Is.EqualTo("Reactive test module"));
+            Object.DestroyImmediate(module);
+            Object.DestroyImmediate(ability);
+        }
+
+        private static void SetPrivateField<T>(object target, string name, T value)
+        {
+            var field = target.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(field, Is.Not.Null, $"Missing private field: {name}");
+            field.SetValue(target, value);
         }
     }
 }

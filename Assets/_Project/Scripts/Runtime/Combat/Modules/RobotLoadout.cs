@@ -17,10 +17,20 @@ namespace Technopath.Combat.Modules
         public RobotModuleDefinition Core { get; private set; }
         public RobotModuleDefinition Processor { get; private set; }
         public IReadOnlyList<RobotModuleDefinition> Modifiers => _modifiers;
+        public bool HasPrimaryAbilityOverride => Core != null && Core.HasAbility;
+        public CombatAbilityDefinition PrimaryAbilityDefinition => HasPrimaryAbilityOverride
+            ? Core.AbilityDefinition
+            : Archetype.AbilityDefinition;
+        public RobotAbilityKind PrimaryAbilityKind => HasPrimaryAbilityOverride
+            ? Core.AbilityDefinition?.AbilityKind ?? RobotAbilityKind.None
+            : Archetype.AbilityKind;
+        public int PrimaryAbilityEffectValue => HasPrimaryAbilityOverride
+            ? Core.AbilityDefinition?.EffectValue ?? Core.AbilityEffectValue
+            : Archetype.EffectValue;
 
         public LoadoutAbilitySummary GetPrimaryAbility()
         {
-            if (Core != null && Core.HasAbility)
+            if (HasPrimaryAbilityOverride)
                 return FromModule(Core);
             return new LoadoutAbilitySummary($"Archetype: {Archetype.DisplayName}", Archetype.AbilityName,
                 Archetype.AbilityRulesText, Archetype.TriggerMoment, Archetype.EffectValue);
@@ -93,8 +103,14 @@ namespace Technopath.Combat.Modules
             sources.Add($"{module.SlotType}: {module.DisplayName} (Lv.{module.Level} {module.Rarity})");
         }
 
-        private static LoadoutAbilitySummary FromModule(RobotModuleDefinition module) =>
-            new($"{module.SlotType}: {module.DisplayName}", module.AbilityName, module.AbilityRulesText,
-                module.AbilityTrigger, module.AbilityEffectValue);
+        private static LoadoutAbilitySummary FromModule(RobotModuleDefinition module)
+        {
+            var ability = module.AbilityDefinition;
+            return ability != null
+                ? new LoadoutAbilitySummary($"{module.SlotType}: {module.DisplayName}", ability.DisplayName,
+                    ability.RulesText, ability.TriggerMoment, ability.EffectValue)
+                : new LoadoutAbilitySummary($"{module.SlotType}: {module.DisplayName}", module.AbilityName,
+                    module.AbilityRulesText, module.AbilityTrigger, module.AbilityEffectValue);
+        }
     }
 }

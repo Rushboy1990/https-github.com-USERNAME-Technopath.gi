@@ -187,10 +187,22 @@ MonoBehaviour:
   unitsRoot: {fileID: 396964102}
   attackTracePrefab: {fileID: 8849899432274201027, guid: f887f40a8f6aa0441a67231d06480d36, type: 3}
   formationSeed: 1701
+  technopathDefinition: {fileID: 11400000, guid: 49a683e46f6849140a844ce079c873cd, type: 2}
   testArchetypes:
-  - {fileID: 11400000, guid: 6b7a8f70cca3fb14c8428ab2ce15a91f, type: 2}
-  - {fileID: 11400000, guid: 6d5bd9a75cf09e04181b897f3797c072, type: 2}
-  - {fileID: 11400000, guid: 574c7423a9459314e913871375133a49, type: 2}
+  - {fileID: 11400000, guid: 44d80764e5fdb2d4c854d4ef61c71659, type: 2}
+  - {fileID: 11400000, guid: 2f3df4eaff4b4044f82c006f06c9202d, type: 2}
+  - {fileID: 11400000, guid: 52b0083854b1d794aa3a10b60ccbd2e3, type: 2}
+  - {fileID: 11400000, guid: 65b2822cfb2e21f45b109a94ccf64298, type: 2}
+  - {fileID: 11400000, guid: 2f4127d502932f94cac62d2a78117a2c, type: 2}
+  - {fileID: 11400000, guid: 64b3888580bd51147b88b98e305282d4, type: 2}
+  - {fileID: 11400000, guid: 5f1d8c539af677a4aaa7309d92daf7b5, type: 2}
+  - {fileID: 11400000, guid: 19e487b7dc593024c98061e8fa96da7b, type: 2}
+  - {fileID: 11400000, guid: 096cda885fd711b44bfd9e255eaf73a5, type: 2}
+  - {fileID: 11400000, guid: f0918a36f43829148a943b0c20a3c1a4, type: 2}
+  testMutants:
+  - {fileID: 11400000, guid: 0179a1a75256fb4419be4a3b987b0b05, type: 2}
+  - {fileID: 11400000, guid: d33d57d3eed64604888751e205a9ee53, type: 2}
+  - {fileID: 11400000, guid: b4735c440ec14144b91898170e963b95, type: 2}
   testLoadoutPresets:
   - {fileID: 11400000, guid: 455fadcaa5aa06940b5d6ec1b324845d, type: 2}
   - {fileID: 11400000, guid: 00afb95a6259e914c89a0234e2a222a7, type: 2}

@@ -30,6 +30,9 @@ namespace Technopath.Combat.Modules
         [SerializeField] private AbilityTriggerMoment abilityTrigger;
         [SerializeField, Min(0)] private int abilityEffectValue;
 
+        [Header("Content ability")]
+        [SerializeField] private CombatAbilityDefinition abilityDefinition;
+
         public string Id => id;
         public string DisplayName => displayName;
         public string RulesText => rulesText;
@@ -43,7 +46,8 @@ namespace Technopath.Combat.Modules
         public string AbilityRulesText => abilityRulesText;
         public AbilityTriggerMoment AbilityTrigger => abilityTrigger;
         public int AbilityEffectValue => abilityEffectValue;
-        public bool HasAbility => !string.IsNullOrWhiteSpace(abilityName);
+        public CombatAbilityDefinition AbilityDefinition => abilityDefinition;
+        public bool HasAbility => abilityDefinition != null || !string.IsNullOrWhiteSpace(abilityName);
 
         public bool IsCompatible(ArchetypeRole role)
         {

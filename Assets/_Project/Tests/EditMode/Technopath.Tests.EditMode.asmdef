@@ -2,7 +2,9 @@
   "name": "Technopath.Tests.EditMode",
   "rootNamespace": "Technopath.Tests",
   "references": [
-    "Technopath.Runtime"
+    "Technopath.Runtime",
+    "Unity.InputSystem",
+    "Unity.InputSystem.TestFramework"
   ],
   "includePlatforms": [
     "Editor"
